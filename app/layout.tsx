@@ -8,11 +8,11 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "ReviewMill — AI Review Management for Local Businesses",
+  title: "ReviewGuard — AI Review Management for Local Businesses",
   description:
-    "ReviewMill monitors your Google, Yelp, and Facebook reviews 24/7 and drafts perfect responses in seconds. You just approve.",
+    "ReviewGuard monitors your Google, Yelp, and Facebook reviews 24/7 and drafts perfect responses in seconds. You just approve.",
   openGraph: {
-    title: "ReviewMill — AI Review Management",
+    title: "ReviewGuard — AI Review Management",
     description:
       "Never miss a customer review again. AI monitors and drafts responses so you can focus on your business.",
     type: "website",

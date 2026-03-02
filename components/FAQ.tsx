@@ -5,7 +5,7 @@ import { useState } from "react";
 const faqs = [
   {
     q: "How does it work?",
-    a: "ReviewMill connects to your Google, Yelp, and Facebook business profiles and monitors for new reviews around the clock. When a new review comes in, our AI reads it and drafts a professional, personalized response. You get a notification and can approve or edit the response with one tap — right from your phone.",
+    a: "ReviewGuard connects to your Google, Yelp, and Facebook business profiles and monitors for new reviews around the clock. When a new review comes in, our AI reads it and drafts a professional, personalized response. You get a notification and can approve or edit the response with one tap — right from your phone.",
   },
   {
     q: "Is it safe to connect my business accounts?",
@@ -21,7 +21,7 @@ const faqs = [
   },
   {
     q: "How is this different from just using ChatGPT?",
-    a: "ChatGPT requires you to copy-paste each review, write a prompt, and then manually post the response. ReviewMill does all of that automatically — it watches for new reviews, drafts responses that match your brand voice, and lets you approve in seconds. It's the difference between a tool and a workflow.",
+    a: "ChatGPT requires you to copy-paste each review, write a prompt, and then manually post the response. ReviewGuard does all of that automatically — it watches for new reviews, drafts responses that match your brand voice, and lets you approve in seconds. It's the difference between a tool and a workflow.",
   },
 ];
 

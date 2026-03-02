@@ -8,7 +8,7 @@ export default function Home() {
       <nav className="bg-[#1a1a2e] px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <span className="text-white font-bold text-lg tracking-tight">
-            Review<span className="text-[#e8a838]">Mill</span>
+            Review<span className="text-[#e8a838]">Guard</span>
           </span>
           <a
             href="#waitlist"
@@ -61,7 +61,7 @@ export default function Home() {
               How It Works
             </h2>
             <p className="text-gray-500 text-base max-w-md mx-auto">
-              Set up once. ReviewMill handles the rest.
+              Set up once. ReviewGuard handles the rest.
             </p>
           </div>
 
@@ -70,7 +70,7 @@ export default function Home() {
               {
                 step: "01",
                 title: "We watch your reviews",
-                body: "ReviewMill monitors Google, Yelp, and Facebook 24/7. The moment a new review lands, we catch it — so you never find out days later.",
+                body: "ReviewGuard monitors Google, Yelp, and Facebook 24/7. The moment a new review lands, we catch it — so you never find out days later.",
                 icon: "👀",
               },
               {
@@ -118,7 +118,7 @@ export default function Home() {
               <span className="text-[#e8a838] font-semibold">
                 10 local businesses
               </span>{" "}
-              to try ReviewMill at no cost. You get the full product. We get your feedback.
+              to try ReviewGuard at no cost. You get the full product. We get your feedback.
             </p>
           </div>
 
@@ -240,7 +240,7 @@ export default function Home() {
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
           <div className="text-white/80">
             <span className="font-bold text-white">
-              Review<span className="text-[#e8a838]">Mill</span>
+              Review<span className="text-[#e8a838]">Guard</span>
             </span>{" "}
             — AI Review Management
           </div>
