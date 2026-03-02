@@ -106,142 +106,95 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Pricing ── */}
+      {/* ── What You Get ── */}
       <section className="px-6 py-20 bg-gray-50" id="pricing">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
             <h2 className="text-3xl md:text-4xl font-extrabold text-[#1a1a2e] mb-3">
-              Simple, Honest Pricing
+              Everything You Get — Free During Beta
             </h2>
-            <p className="text-gray-500 text-base max-w-md mx-auto">
-              All plans are{" "}
+            <p className="text-gray-500 text-base max-w-lg mx-auto">
+              We&apos;re looking for{" "}
               <span className="text-[#e8a838] font-semibold">
-                completely free during beta
-              </span>
-              . Lock in your rate before we launch.
+                10 local businesses
+              </span>{" "}
+              to try ReviewMill at no cost. You get the full product. We get your feedback.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Monitor & Alert */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-7 flex flex-col">
-              <div className="mb-6">
-                <h3 className="text-base font-bold text-[#1a1a2e] mb-1">
-                  Monitor &amp; Alert
-                </h3>
-                <div className="flex items-end gap-1 mb-3">
-                  <span className="text-4xl font-extrabold text-[#1a1a2e]">
-                    $29
-                  </span>
-                  <span className="text-gray-400 text-sm mb-1">/mo</span>
-                </div>
-                <p className="text-gray-500 text-sm">
-                  Get notified instantly when a new review arrives. Perfect for
-                  owners who want to write their own responses.
-                </p>
-              </div>
-              <ul className="flex flex-col gap-2 text-sm text-gray-600 mb-8 flex-grow">
-                {[
-                  "24/7 review monitoring",
-                  "Instant email + SMS alerts",
-                  "Google, Yelp, Facebook",
-                  "Weekly summary report",
-                ].map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <span className="text-[#e8a838] mt-0.5">✓</span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <a
-                href="#waitlist"
-                className="block text-center bg-gray-100 hover:bg-gray-200 text-[#1a1a2e] font-semibold py-3 px-5 rounded-xl transition-colors text-sm"
-              >
-                Join Beta — Free
-              </a>
+          <div className="bg-[#1a1a2e] rounded-2xl p-8 md:p-12 relative shadow-lg">
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+              <span className="bg-[#e8a838] text-[#1a1a2e] text-xs font-bold px-4 py-1 rounded-full tracking-wide uppercase">
+                Free Beta — No Credit Card
+              </span>
             </div>
 
-            {/* Monitor + Draft — POPULAR */}
-            <div className="bg-[#1a1a2e] border-2 border-[#e8a838] rounded-2xl p-7 flex flex-col relative shadow-lg">
-              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                <span className="bg-[#e8a838] text-[#1a1a2e] text-xs font-bold px-4 py-1 rounded-full tracking-wide uppercase">
-                  Most Popular
-                </span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mt-4">
+              <div>
+                <div className="text-2xl mb-3">👁️</div>
+                <h3 className="text-base font-bold text-white mb-2">24/7 Monitoring</h3>
+                <ul className="flex flex-col gap-2 text-sm text-white/70">
+                  {[
+                    "Google, Yelp & Facebook reviews",
+                    "Instant email alerts",
+                    "Weekly summary report",
+                    "Never miss a review again",
+                  ].map((f) => (
+                    <li key={f} className="flex items-start gap-2">
+                      <span className="text-[#e8a838] mt-0.5">✓</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <div className="mb-6">
-                <h3 className="text-base font-bold text-white mb-1">
-                  Monitor + Draft
-                </h3>
-                <div className="flex items-end gap-1 mb-3">
-                  <span className="text-4xl font-extrabold text-white">
-                    $49
-                  </span>
-                  <span className="text-white/50 text-sm mb-1">/mo</span>
-                </div>
-                <p className="text-white/60 text-sm">
-                  Everything in Monitor &amp; Alert, plus AI-drafted responses
-                  you approve before they post.
-                </p>
+
+              <div>
+                <div className="text-2xl mb-3">✍️</div>
+                <h3 className="text-base font-bold text-white mb-2">AI-Drafted Responses</h3>
+                <ul className="flex flex-col gap-2 text-sm text-white/70">
+                  {[
+                    "Professional replies in seconds",
+                    "Matched to your brand voice",
+                    "Edit before posting",
+                    "One-tap approve from your phone",
+                  ].map((f) => (
+                    <li key={f} className="flex items-start gap-2">
+                      <span className="text-[#e8a838] mt-0.5">✓</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="flex flex-col gap-2 text-sm text-white/80 mb-8 flex-grow">
-                {[
-                  "Everything in Monitor & Alert",
-                  "AI-drafted responses",
-                  "Approve or edit before posting",
-                  "Brand voice customization",
-                  "Response analytics",
-                ].map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <span className="text-[#e8a838] mt-0.5">✓</span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <a
-                href="#waitlist"
-                className="block text-center bg-[#e8a838] hover:bg-[#d4922a] text-[#1a1a2e] font-bold py-3 px-5 rounded-xl transition-colors text-sm"
-              >
-                Join Beta — Free
-              </a>
+
+              <div>
+                <div className="text-2xl mb-3">📊</div>
+                <h3 className="text-base font-bold text-white mb-2">Reputation Insights</h3>
+                <ul className="flex flex-col gap-2 text-sm text-white/70">
+                  {[
+                    "Sentiment trends over time",
+                    "Response rate tracking",
+                    "Competitor benchmarking",
+                    "Monthly reputation report",
+                  ].map((f) => (
+                    <li key={f} className="flex items-start gap-2">
+                      <span className="text-[#e8a838] mt-0.5">✓</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
 
-            {/* Full Autopilot */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-7 flex flex-col">
-              <div className="mb-6">
-                <h3 className="text-base font-bold text-[#1a1a2e] mb-1">
-                  Full Autopilot
-                </h3>
-                <div className="flex items-end gap-1 mb-3">
-                  <span className="text-4xl font-extrabold text-[#1a1a2e]">
-                    $99
-                  </span>
-                  <span className="text-gray-400 text-sm mb-1">/mo</span>
-                </div>
-                <p className="text-gray-500 text-sm">
-                  Fully automated review responses with your oversight. Set it
-                  and forget it.
-                </p>
-              </div>
-              <ul className="flex flex-col gap-2 text-sm text-gray-600 mb-8 flex-grow">
-                {[
-                  "Everything in Monitor + Draft",
-                  "Auto-post responses",
-                  "Priority alert for negative reviews",
-                  "Monthly strategy call",
-                  "Dedicated support",
-                ].map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <span className="text-[#e8a838] mt-0.5">✓</span>
-                    {f}
-                  </li>
-                ))}
-              </ul>
+            <div className="mt-10 text-center">
               <a
                 href="#waitlist"
-                className="block text-center bg-gray-100 hover:bg-gray-200 text-[#1a1a2e] font-semibold py-3 px-5 rounded-xl transition-colors text-sm"
+                className="inline-block bg-[#e8a838] hover:bg-[#d4922a] text-[#1a1a2e] font-bold py-3 px-8 rounded-xl transition-colors text-sm"
               >
-                Join Beta — Free
+                Join the Beta — It&apos;s Free
               </a>
+              <p className="text-white/40 text-xs mt-3">
+                Limited to 10 spots. No credit card. No commitment.
+              </p>
             </div>
           </div>
         </div>
