@@ -76,3 +76,72 @@ export const mockReviews: Review[] = [
     response_status: "drafted",
   },
 ];
+
+export type SimulateTemplate = {
+  reviewer_name: string;
+  rating: number;
+  review_text: string;
+};
+
+export const SIMULATE_POOL: SimulateTemplate[] = [
+  {
+    reviewer_name: "Amanda F.",
+    rating: 5,
+    review_text:
+      "Best pizza I've had in years! The wood-fired crust was perfectly crispy and the fresh basil on top made all the difference. Service was fast and the staff were so friendly. We'll definitely be regulars.",
+  },
+  {
+    reviewer_name: "Maria S.",
+    rating: 4,
+    review_text:
+      "Fantastic food and great atmosphere. The pasta carbonara was creamy and indulgent. Service was a little slow but the staff were friendly and apologetic about it. Would definitely come back.",
+  },
+  {
+    reviewer_name: "Kevin O.",
+    rating: 3,
+    review_text:
+      "Good pizza but nothing mind-blowing. The tiramisu was the highlight of the meal. Portions felt a bit small for the price point. Might give it another shot.",
+  },
+  {
+    reviewer_name: "Nina B.",
+    rating: 5,
+    review_text:
+      "Tony's never disappoints! Third visit and every time the food is consistently amazing. The garlic knots are a must-order. So glad this place is in the neighborhood.",
+  },
+  {
+    reviewer_name: "Ryan M.",
+    rating: 2,
+    review_text:
+      "Had high hopes based on the reviews but was let down. The pizza arrived cold and the crust was soggy. Staff seemed overwhelmed and not very attentive. Probably won't return.",
+  },
+  {
+    reviewer_name: "Aisha T.",
+    rating: 5,
+    review_text:
+      "Absolutely phenomenal! The Sicilian slice was perfectly crispy on the outside, perfectly chewy inside. The owner personally came by to check on us — that personal touch is rare these days.",
+  },
+  {
+    reviewer_name: "Tom H.",
+    rating: 1,
+    review_text:
+      "Very disappointing. Waited 45 minutes for a simple order, the pizza was burnt on one side, and nobody seemed to care when I mentioned it. Won't be coming back.",
+  },
+  {
+    reviewer_name: "Lisa K.",
+    rating: 4,
+    review_text:
+      "Really solid spot! The margherita was simple but perfect. A bit pricey for the portion size but the quality justifies it. Will be back for the calzone next time.",
+  },
+  {
+    reviewer_name: "Omar J.",
+    rating: 5,
+    review_text:
+      "Celebrated our anniversary here and it was perfect. The staff surprised us with a complimentary dessert when they heard. The truffle pizza was out of this world. Highly recommend!",
+  },
+  {
+    reviewer_name: "Rachel D.",
+    rating: 3,
+    review_text:
+      "Decent place but a bit inconsistent. First visit was great, second visit the pizza was overcooked. The pasta dishes are more reliable. Atmosphere is lovely though.",
+  },
+];

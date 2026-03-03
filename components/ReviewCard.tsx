@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { Review } from "@/lib/mockData";
 
+type ReviewCardProps = {
+  review: Review;
+  onToast?: (message: string, type?: "success" | "info" | "error") => void;
+};
+
 function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5">
@@ -21,20 +26,93 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 function ratingMeta(rating: number): { label: string; color: string } {
-  if (rating >= 4) return { label: rating === 5 ? "Excellent" : "Good", color: "text-green-600" };
+  if (rating === 5) return { label: "Excellent", color: "text-green-600" };
+  if (rating === 4) return { label: "Good", color: "text-green-600" };
   if (rating === 3) return { label: "Average", color: "text-yellow-600" };
-  return { label: rating === 2 ? "Poor" : "Critical", color: "text-red-600" };
+  if (rating === 2) return { label: "Poor", color: "text-red-500" };
+  return { label: "Critical", color: "text-red-600" };
 }
 
-export function ReviewCard({ review }: { review: Review }) {
+function StatusBadge({ status }: { status: Review["response_status"] }) {
+  const config = {
+    pending: { label: "Pending", className: "bg-amber-100 text-amber-700" },
+    drafted: { label: "Drafted", className: "bg-blue-100 text-blue-700" },
+    approved: { label: "Approved", className: "bg-green-100 text-green-700" },
+    sent: { label: "Sent ✓", className: "bg-green-100 text-green-700" },
+  }[status];
+
+  return (
+    <span
+      className={`text-xs font-semibold px-2.5 py-1 rounded-full ${config.className}`}
+    >
+      {config.label}
+    </span>
+  );
+}
+
+function Spinner() {
+  return (
+    <svg
+      className="animate-spin w-4 h-4"
+      viewBox="0 0 24 24"
+      fill="none"
+    >
+      <circle
+        className="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        strokeWidth="4"
+      />
+      <path
+        className="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+      />
+    </svg>
+  );
+}
+
+export function ReviewCard({ review, onToast }: ReviewCardProps) {
   const [status, setStatus] = useState<Review["response_status"]>(
     review.response_status
   );
   const [draft, setDraft] = useState(review.drafted_response);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(review.drafted_response);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const { label, color } = ratingMeta(review.rating);
+
+  const generateDraft = async () => {
+    setIsGenerating(true);
+    try {
+      const res = await fetch("/api/draft-response", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rating: review.rating,
+          reviewer_name: review.reviewer_name,
+          review_text: review.review_text,
+          business_name: "Tony's Pizzeria",
+          brand_voice: "professional and friendly",
+        }),
+      });
+      if (!res.ok) throw new Error("API error");
+      const data = await res.json();
+      if (data.draft) {
+        setDraft(data.draft);
+        setEditValue(data.draft);
+        setStatus("drafted");
+        onToast?.("Response generated!");
+      }
+    } catch {
+      onToast?.("Failed to generate response. Please try again.", "error");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const saveEdit = () => {
     setDraft(editValue);
@@ -46,7 +124,12 @@ export function ReviewCard({ review }: { review: Review }) {
     setIsEditing(false);
   };
 
-  const isResolved = status === "approved" || status === "sent";
+  const approve = () => {
+    setStatus("approved");
+    onToast?.("Response approved!");
+  };
+
+  const hasDraft = status === "drafted" || status === "approved" || status === "sent";
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
@@ -66,15 +149,7 @@ export function ReviewCard({ review }: { review: Review }) {
             })}
           </p>
         </div>
-        <span
-          className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-            status === "approved" || status === "sent"
-              ? "bg-green-100 text-green-700"
-              : "bg-amber-100 text-amber-700"
-          }`}
-        >
-          {status === "approved" || status === "sent" ? "Approved" : "Draft Ready"}
-        </span>
+        <StatusBadge status={status} />
       </div>
 
       {/* Customer review */}
@@ -82,32 +157,59 @@ export function ReviewCard({ review }: { review: Review }) {
         <p className="text-sm text-gray-700 leading-relaxed">{review.review_text}</p>
       </div>
 
-      {/* AI drafted response */}
-      <div className="border border-[#e8a838]/40 rounded-lg p-3 mb-4 bg-amber-50/40">
-        <p className="text-xs font-semibold text-[#d4922a] mb-1.5 uppercase tracking-wide">
-          AI Draft Response
-        </p>
-        {isEditing ? (
-          <textarea
-            className="w-full text-sm text-gray-700 leading-relaxed bg-white border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-[#e8a838] resize-none"
-            rows={4}
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-          />
-        ) : (
-          <p className="text-sm text-gray-700 leading-relaxed">{draft}</p>
-        )}
-      </div>
-
-      {/* Action buttons */}
-      {isResolved ? (
-        <div className="flex items-center gap-2 text-green-600">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-          <span className="text-sm font-medium">Response approved</span>
+      {/* AI draft response — shown after draft is generated */}
+      {hasDraft && (
+        <div className="border border-[#e8a838]/40 rounded-lg p-3 mb-4 bg-amber-50/40">
+          <p className="text-xs font-semibold text-[#d4922a] mb-1.5 uppercase tracking-wide">
+            AI Draft Response
+          </p>
+          {isEditing ? (
+            <textarea
+              className="w-full text-sm text-gray-700 leading-relaxed bg-white border border-gray-300 rounded p-2 focus:outline-none focus:ring-2 focus:ring-[#e8a838] resize-none"
+              rows={4}
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+            />
+          ) : (
+            <p className="text-sm text-gray-700 leading-relaxed">{draft}</p>
+          )}
         </div>
-      ) : isEditing ? (
+      )}
+
+      {/* Action area */}
+      {status === "pending" && (
+        <button
+          onClick={generateDraft}
+          disabled={isGenerating}
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-[#1a1a2e] text-white text-sm font-medium rounded-lg hover:bg-[#252545] transition-colors disabled:opacity-60"
+        >
+          {isGenerating ? (
+            <>
+              <Spinner />
+              Generating with Claude…
+            </>
+          ) : (
+            <>
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+              Generate Response
+            </>
+          )}
+        </button>
+      )}
+
+      {status === "drafted" && isEditing && (
         <div className="flex gap-2">
           <button
             onClick={saveEdit}
@@ -122,13 +224,15 @@ export function ReviewCard({ review }: { review: Review }) {
             Cancel
           </button>
         </div>
-      ) : (
+      )}
+
+      {status === "drafted" && !isEditing && (
         <div className="flex gap-2">
           <button
-            onClick={() => setStatus("approved")}
+            onClick={approve}
             className="flex-1 py-2 px-3 bg-[#e8a838] text-white text-sm font-medium rounded-lg hover:bg-[#d4922a] transition-colors"
           >
-            Approve Response
+            Approve &amp; Send
           </button>
           <button
             onClick={() => setIsEditing(true)}
@@ -136,6 +240,25 @@ export function ReviewCard({ review }: { review: Review }) {
           >
             Edit
           </button>
+        </div>
+      )}
+
+      {(status === "approved" || status === "sent") && (
+        <div className="flex items-center gap-2 text-green-600">
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+          <span className="text-sm font-medium">Response approved</span>
         </div>
       )}
     </div>
