@@ -13,7 +13,13 @@ export default async function Home() {
           <span className="text-white font-bold text-lg tracking-tight">
             Review<span className="text-[#e8a838]">Guard</span>
           </span>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
+            <a
+              href="/pricing"
+              className="text-gray-300 hover:text-white text-sm font-medium transition-colors"
+            >
+              Pricing
+            </a>
             {session ? (
               <a
                 href="/dashboard"
