@@ -6,6 +6,11 @@ export type Business = {
   business_name: string | null;
   google_account_id: string | null;
   brand_voice: string;
+  business_type: string | null;
+  voice_tone: string | null;
+  custom_instructions: string | null;
+  notifications_enabled: boolean;
+  notification_email: string | null;
   created_at: string;
 };
 
@@ -29,8 +34,29 @@ export async function getBusinessByEmail(
   const supabase = createSupabaseClient();
   const { data } = await supabase
     .from("businesses")
-    .select("id, owner_email, business_name, google_account_id, brand_voice, created_at")
+    .select(
+      "id, owner_email, business_name, google_account_id, brand_voice, business_type, voice_tone, custom_instructions, notifications_enabled, notification_email, created_at"
+    )
     .eq("owner_email", email)
     .single();
   return data ?? null;
+}
+
+export async function updateBusinessProfile(
+  email: string,
+  data: {
+    business_name?: string;
+    business_type?: string;
+    voice_tone?: string;
+    custom_instructions?: string;
+    notifications_enabled?: boolean;
+    notification_email?: string;
+  }
+): Promise<void> {
+  const supabase = createSupabaseClient();
+  const { error } = await supabase
+    .from("businesses")
+    .update(data)
+    .eq("owner_email", email);
+  if (error) throw error;
 }

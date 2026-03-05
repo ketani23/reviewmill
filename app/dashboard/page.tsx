@@ -1,5 +1,7 @@
 import { getSession } from "@/lib/session";
+import { getBusinessByEmail } from "@/lib/db";
 import { DashboardContent } from "@/components/DashboardContent";
+import { redirect } from "next/navigation";
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -60,5 +62,25 @@ export default async function DashboardPage() {
     );
   }
 
-  return <DashboardContent email={session.email} name={session.name} />;
+  // Fetch business to get real name and check onboarding status
+  let businessName = session.name ?? "Your Business";
+  try {
+    const business = await getBusinessByEmail(session.email);
+    if (business && !business.business_type) {
+      redirect("/onboarding");
+    }
+    if (business?.business_name) {
+      businessName = business.business_name;
+    }
+  } catch {
+    // DB error — show dashboard with fallback name
+  }
+
+  return (
+    <DashboardContent
+      email={session.email}
+      name={session.name}
+      businessName={businessName}
+    />
+  );
 }

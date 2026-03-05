@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { upsertBusiness, getBusinessByEmail } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -38,7 +39,20 @@ export async function GET(req: NextRequest) {
   });
   const user = await userRes.json();
 
-  // Store session in a cookie (simple JWT-like approach)
+  // Upsert business record (creates on first sign-in, no-ops on subsequent)
+  try {
+    await upsertBusiness({
+      owner_email: user.email,
+      business_name: user.name,
+      google_account_id: user.id,
+      google_access_token: tokens.access_token,
+      google_refresh_token: tokens.refresh_token,
+    });
+  } catch {
+    // Don't block sign-in if DB write fails
+  }
+
+  // Store session in cookie
   const sessionData = JSON.stringify({
     email: user.email,
     name: user.name,
@@ -56,5 +70,15 @@ export async function GET(req: NextRequest) {
     maxAge: 60 * 60 * 24 * 30, // 30 days
   });
 
-  return NextResponse.redirect(new URL("/dashboard", req.url));
+  // Check if onboarding is needed (business_type not yet set)
+  let redirectPath = "/onboarding";
+  try {
+    const business = await getBusinessByEmail(user.email);
+    if (business?.business_type) redirectPath = "/dashboard";
+  } catch {
+    // DB error — send to dashboard, it will handle fallback
+    redirectPath = "/dashboard";
+  }
+
+  return NextResponse.redirect(new URL(redirectPath, req.url));
 }
