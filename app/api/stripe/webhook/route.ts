@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         // Update by email (easiest since we stored it in metadata)
         const { createSupabaseClient } = await import("@/lib/supabase-server");
         const supabase = createSupabaseClient();
-        await supabase
+        const { error: updateError } = await supabase
           .from("businesses")
           .update({
             stripe_customer_id: customerId,
@@ -74,6 +74,14 @@ export async function POST(req: NextRequest) {
             trial_ends_at: trialEndsAt,
           })
           .eq("owner_email", ownerEmail);
+
+        if (updateError) {
+          console.error("Failed to persist checkout session to DB:", updateError);
+          return NextResponse.json(
+            { error: "Failed to update billing state" },
+            { status: 500 }
+          );
+        }
 
         break;
       }
