@@ -72,8 +72,7 @@ export default function ReviewActionPage() {
       return;
     }
 
-    // Decode the token client-side by calling a lightweight decode endpoint
-    // We use the approve endpoint with a GET-style approach by POSTing token only to validate
+    // Validate the token server-side via /api/review/decode to extract reviewId and businessId
     fetch("/api/review/decode", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -90,8 +89,8 @@ export default function ReviewActionPage() {
           return;
         }
 
-        // Try to fetch review from Supabase via API; fall back to mock
-        fetch(`/api/review/get?reviewId=${encodeURIComponent(data.reviewId)}`)
+        // Fetch review via token (server validates JWT and scopes by business_id)
+        fetch(`/api/review/get?token=${encodeURIComponent(token)}`)
           .then((r) => r.json())
           .then((reviewData) => {
             const review: ReviewData =

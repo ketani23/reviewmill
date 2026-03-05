@@ -3,7 +3,13 @@ import { SignJWT, jwtVerify } from "jose";
 const TOKEN_EXPIRY = "24h";
 
 function getSecret(): Uint8Array {
-  const secret = process.env.REVIEW_TOKEN_SECRET ?? "dev-secret-change-in-production";
+  const secret = process.env.REVIEW_TOKEN_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("REVIEW_TOKEN_SECRET must be set in production");
+    }
+    return new TextEncoder().encode("dev-secret-change-in-production");
+  }
   return new TextEncoder().encode(secret);
 }
 
