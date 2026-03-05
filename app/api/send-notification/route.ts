@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Resend } from "resend";
 
 type ReviewPayload = {
   reviewer_name: string;
@@ -8,7 +7,7 @@ type ReviewPayload = {
   review_date: string;
 };
 
-function buildEmailHtml(businessName: string, review: ReviewPayload, liveMode: boolean): string {
+function buildEmailHtml(businessName: string, review: ReviewPayload): string {
   const stars = "★".repeat(review.rating) + "☆".repeat(5 - review.rating);
   const snippet =
     review.review_text.length > 180
@@ -30,13 +29,6 @@ function buildEmailHtml(businessName: string, review: ReviewPayload, liveMode: b
       : review.rating === 3
       ? "#d97706"
       : "#dc2626";
-
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://reviewmill.vercel.app";
-
-  const footerNote = liveMode
-    ? "ReviewGuard · AI-powered review management"
-    : 'ReviewGuard · AI-powered review management · <strong style="color:#6b7280;">Mock Mode — email not actually sent</strong>';
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -120,7 +112,7 @@ function buildEmailHtml(businessName: string, review: ReviewPayload, liveMode: b
               <table cellpadding="0" cellspacing="0" role="presentation" style="margin-top:28px;">
                 <tr>
                   <td style="border-radius:10px;overflow:hidden;">
-                    <a href="${appUrl}/dashboard"
+                    <a href="http://localhost:3000/dashboard"
                       style="display:inline-block;background-color:#e8a838;color:#ffffff;text-decoration:none;padding:14px 32px;font-size:14px;font-weight:700;border-radius:10px;letter-spacing:0.2px;">
                       View &amp; Respond Now →
                     </a>
@@ -139,7 +131,7 @@ function buildEmailHtml(businessName: string, review: ReviewPayload, liveMode: b
           <tr>
             <td style="padding:20px 32px;background-color:#f9fafb;border-top:1px solid #e5e7eb;">
               <p style="margin:0;font-size:11px;color:#9ca3af;line-height:1.6;">
-                ${footerNote}
+                ReviewGuard · AI-powered review management · <strong style="color:#6b7280;">Mock Mode — email not actually sent</strong>
               </p>
             </td>
           </tr>
@@ -154,10 +146,9 @@ function buildEmailHtml(businessName: string, review: ReviewPayload, liveMode: b
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { business_name, review, owner_email } = body as {
+  const { business_name, review } = body as {
     business_name?: string;
     review?: ReviewPayload;
-    owner_email?: string;
   };
 
   if (!business_name || !review) {
@@ -167,45 +158,24 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const emailHtml = buildEmailHtml(business_name, review);
   const stars = "★".repeat(review.rating) + "☆".repeat(5 - review.rating);
-  const subject = `New ${stars} review from ${review.reviewer_name} — ${business_name}`;
-  const toEmail = owner_email ?? "aniket.das2302@gmail.com";
 
-  if (!process.env.RESEND_API_KEY) {
-    const emailHtml = buildEmailHtml(business_name, review, false);
-    console.log("\n");
-    console.log("═══════════════════════════════════════════════════════");
-    console.log("  📧  REVIEWGUARD — MOCK EMAIL NOTIFICATION");
-    console.log("═══════════════════════════════════════════════════════");
-    console.log(`  To:      ${toEmail}`);
-    console.log(`  Subject: ${subject}`);
-    console.log(`  Mode:    MOCK (not sent — configure Resend to enable)`);
-    console.log("───────────────────────────────────────────────────────");
-    console.log(`  Reviewer: ${review.reviewer_name}`);
-    console.log(`  Rating:   ${stars} (${review.rating}/5)`);
-    console.log(`  Excerpt:  "${review.review_text.slice(0, 100)}${review.review_text.length > 100 ? "…" : ""}"`);
-    console.log("───────────────────────────────────────────────────────");
-    console.log("  [HTML email rendered — see below for template preview]");
-    console.log(emailHtml.slice(0, 200) + "...");
-    console.log("═══════════════════════════════════════════════════════\n");
+  console.log("\n");
+  console.log("═══════════════════════════════════════════════════════");
+  console.log("  📧  REVIEWGUARD — MOCK EMAIL NOTIFICATION");
+  console.log("═══════════════════════════════════════════════════════");
+  console.log(`  To:      owner@tonyspizzeria.com`);
+  console.log(`  Subject: New ${stars} review from ${review.reviewer_name} — ${business_name}`);
+  console.log(`  Mode:    MOCK (not sent — configure Resend to enable)`);
+  console.log("───────────────────────────────────────────────────────");
+  console.log(`  Reviewer: ${review.reviewer_name}`);
+  console.log(`  Rating:   ${stars} (${review.rating}/5)`);
+  console.log(`  Excerpt:  "${review.review_text.slice(0, 100)}${review.review_text.length > 100 ? "…" : ""}"`);
+  console.log("───────────────────────────────────────────────────────");
+  console.log("  [HTML email rendered — see below for template preview]");
+  console.log(emailHtml.slice(0, 200) + "...");
+  console.log("═══════════════════════════════════════════════════════\n");
 
-    return NextResponse.json({ success: true, mode: "mock" });
-  }
-
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const emailHtml = buildEmailHtml(business_name, review, true);
-
-  const { data, error } = await resend.emails.send({
-    from: "ReviewGuard <onboarding@resend.dev>",
-    to: toEmail,
-    subject,
-    html: emailHtml,
-  });
-
-  if (error) {
-    console.error("Resend error:", error);
-    return NextResponse.json({ error: "Failed to send email" }, { status: 500 });
-  }
-
-  return NextResponse.json({ success: true, mode: "live", emailId: data?.id });
+  return NextResponse.json({ success: true, mode: "mock" });
 }

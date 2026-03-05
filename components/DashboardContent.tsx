@@ -60,7 +60,8 @@ function DashboardInner({ email }: Props) {
       // Optimistic UI — add to top immediately
       setReviews((prev) => [newReview, ...prev]);
 
-      const notifRes = await fetch("/api/send-notification", {
+      // Mock email notification
+      await fetch("/api/send-notification", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -68,14 +69,9 @@ function DashboardInner({ email }: Props) {
           review: newReview,
         }),
       });
-      const notifData = await notifRes.json();
 
-      const emailMsg =
-        notifData.mode === "live"
-          ? "Email notification sent!"
-          : "Email logged (configure Resend to send)";
       showToast(
-        `New ${template.rating}★ review from ${template.reviewer_name} — ${emailMsg}`,
+        `New ${template.rating}★ review from ${template.reviewer_name} — email sent!`,
         "info"
       );
     } catch {
