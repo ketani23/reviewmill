@@ -15,25 +15,26 @@ function buildEmailHtml(
   liveMode: boolean,
   reviewToken: string | null
 ): string {
-  const stars = "★".repeat(review.rating) + "☆".repeat(5 - review.rating);
+  const rating = Math.min(5, Math.max(0, Math.round(review.rating)));
+  const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
   const snippet =
     review.review_text.length > 180
       ? review.review_text.slice(0, 180) + "…"
       : review.review_text;
   const ratingLabel =
-    review.rating === 5
+    rating === 5
       ? "Excellent"
-      : review.rating === 4
+      : rating === 4
       ? "Good"
-      : review.rating === 3
+      : rating === 3
       ? "Average"
-      : review.rating === 2
+      : rating === 2
       ? "Poor"
       : "Critical";
   const ratingColor =
-    review.rating >= 4
+    rating >= 4
       ? "#16a34a"
-      : review.rating === 3
+      : rating === 3
       ? "#d97706"
       : "#dc2626";
 
@@ -203,17 +204,18 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const stars = "★".repeat(review.rating) + "☆".repeat(5 - review.rating);
+  const clampedRating = Math.min(5, Math.max(0, Math.round(review.rating)));
+  const stars = "★".repeat(clampedRating) + "☆".repeat(5 - clampedRating);
   const subject = `New ${stars} review from ${review.reviewer_name} — ${business_name}`;
-  const toEmail = owner_email ?? "aniket.das2302@gmail.com";
 
   if (!process.env.RESEND_API_KEY) {
+    const mockEmail = "test@example.com";
     const emailHtml = buildEmailHtml(business_name, review, false, reviewToken);
     console.log("\n");
     console.log("═══════════════════════════════════════════════════════");
     console.log("  📧  REVIEWGUARD — MOCK EMAIL NOTIFICATION");
     console.log("═══════════════════════════════════════════════════════");
-    console.log(`  To:      ${toEmail}`);
+    console.log(`  To:      ${mockEmail}`);
     console.log(`  Subject: ${subject}`);
     console.log(`  Mode:    MOCK (not sent — configure Resend to enable)`);
     console.log("───────────────────────────────────────────────────────");
@@ -233,12 +235,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, mode: "mock" });
   }
 
+  if (!owner_email) {
+    return NextResponse.json(
+      { error: "owner_email is required" },
+      { status: 400 }
+    );
+  }
+
   const resend = new Resend(process.env.RESEND_API_KEY);
   const emailHtml = buildEmailHtml(business_name, review, true, reviewToken);
 
   const { data, error } = await resend.emails.send({
     from: "ReviewGuard <onboarding@resend.dev>",
-    to: toEmail,
+    to: owner_email,
     subject,
     html: emailHtml,
   });

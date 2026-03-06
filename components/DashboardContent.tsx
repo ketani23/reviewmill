@@ -70,16 +70,20 @@ function DashboardInner({ email, businessName }: Props) {
           review: newReview,
         }),
       });
-      const notifData = await notifRes.json();
 
-      const emailMsg =
-        notifData.mode === "live"
-          ? "Email notification sent!"
-          : "Email logged (configure Resend to send)";
-      showToast(
-        `New ${template.rating}★ review from ${template.reviewer_name} — ${emailMsg}`,
-        "info"
-      );
+      if (!notifRes.ok) {
+        showToast("Review added, but email notification failed.", "error");
+      } else {
+        const notifData = await notifRes.json();
+        const emailMsg =
+          notifData.mode === "live"
+            ? "Email notification sent!"
+            : "Email logged (configure Resend to send)";
+        showToast(
+          `New ${template.rating}★ review from ${template.reviewer_name} — ${emailMsg}`,
+          "info"
+        );
+      }
     } catch {
       showToast("Failed to simulate review. Please try again.", "error");
     } finally {
