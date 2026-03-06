@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
+import { generateReviewToken } from "@/lib/tokens";
 
 type ReviewPayload = {
   reviewer_name: string;
@@ -8,31 +9,45 @@ type ReviewPayload = {
   review_date: string;
 };
 
-function buildEmailHtml(businessName: string, review: ReviewPayload, liveMode: boolean): string {
-  const stars = "★".repeat(review.rating) + "☆".repeat(5 - review.rating);
+function buildEmailHtml(
+  businessName: string,
+  review: ReviewPayload,
+  liveMode: boolean,
+  reviewToken: string | null
+): string {
+  const rating = Math.min(5, Math.max(0, Math.round(review.rating)));
+  const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
   const snippet =
     review.review_text.length > 180
       ? review.review_text.slice(0, 180) + "…"
       : review.review_text;
   const ratingLabel =
-    review.rating === 5
+    rating === 5
       ? "Excellent"
-      : review.rating === 4
+      : rating === 4
       ? "Good"
-      : review.rating === 3
+      : rating === 3
       ? "Average"
-      : review.rating === 2
+      : rating === 2
       ? "Poor"
       : "Critical";
   const ratingColor =
-    review.rating >= 4
+    rating >= 4
       ? "#16a34a"
-      : review.rating === 3
+      : rating === 3
       ? "#d97706"
       : "#dc2626";
 
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL ?? "https://reviewmill.vercel.app";
+
+  // Use token-based deep links when a token is available
+  const reviewPageUrl = reviewToken
+    ? `${appUrl}/review/${reviewToken}`
+    : `${appUrl}/dashboard`;
+  const quickApproveUrl = reviewToken
+    ? `${appUrl}/api/review/approve?token=${reviewToken}`
+    : `${appUrl}/dashboard`;
 
   const footerNote = liveMode
     ? "ReviewGuard · AI-powered review management"
@@ -116,21 +131,31 @@ function buildEmailHtml(businessName: string, review: ReviewPayload, liveMode: b
                 </tr>
               </table>
 
-              <!-- CTA -->
+              <!-- CTA buttons -->
               <table cellpadding="0" cellspacing="0" role="presentation" style="margin-top:28px;">
                 <tr>
-                  <td style="border-radius:10px;overflow:hidden;">
-                    <a href="${appUrl}/dashboard"
-                      style="display:inline-block;background-color:#e8a838;color:#ffffff;text-decoration:none;padding:14px 32px;font-size:14px;font-weight:700;border-radius:10px;letter-spacing:0.2px;">
+                  <td style="border-radius:10px;overflow:hidden;padding-right:12px;">
+                    <a href="${reviewPageUrl}"
+                      style="display:inline-block;background-color:#e8a838;color:#ffffff;text-decoration:none;padding:14px 28px;font-size:14px;font-weight:700;border-radius:10px;letter-spacing:0.2px;">
                       View &amp; Respond Now →
                     </a>
                   </td>
+                  ${
+                    reviewToken
+                      ? `<td style="border-radius:10px;overflow:hidden;">
+                    <a href="${quickApproveUrl}"
+                      style="display:inline-block;background-color:#16a34a;color:#ffffff;text-decoration:none;padding:14px 28px;font-size:14px;font-weight:700;border-radius:10px;letter-spacing:0.2px;">
+                      ✓ Quick Approve
+                    </a>
+                  </td>`
+                      : ""
+                  }
                 </tr>
               </table>
 
-              <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;line-height:1.6;">
-                ReviewGuard drafts a professional response using AI in seconds.
-                You can edit and approve before it goes live.
+              <p style="margin:16px 0 0;font-size:12px;color:#9ca3af;line-height:1.6;">
+                <strong>View &amp; Respond</strong> opens the review page where you can edit the AI draft before approving.
+                ${reviewToken ? '<br/><strong>Quick Approve</strong> immediately approves the AI-drafted response — no login required.' : ''}
               </p>
             </td>
           </tr>
@@ -154,10 +179,12 @@ function buildEmailHtml(businessName: string, review: ReviewPayload, liveMode: b
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { business_name, review, owner_email } = body as {
+  const { business_name, review, owner_email, review_id, business_id } = body as {
     business_name?: string;
     review?: ReviewPayload;
     owner_email?: string;
+    review_id?: string;
+    business_id?: string;
   };
 
   if (!business_name || !review) {
@@ -167,23 +194,39 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const stars = "★".repeat(review.rating) + "☆".repeat(5 - review.rating);
+  // Generate a review token when review_id and business_id are provided
+  let reviewToken: string | null = null;
+  if (review_id && business_id) {
+    try {
+      reviewToken = await generateReviewToken(review_id, business_id);
+    } catch (err) {
+      console.warn("Token generation failed:", err);
+    }
+  }
+
+  const clampedRating = Math.min(5, Math.max(0, Math.round(review.rating)));
+  const stars = "★".repeat(clampedRating) + "☆".repeat(5 - clampedRating);
   const subject = `New ${stars} review from ${review.reviewer_name} — ${business_name}`;
-  const toEmail = owner_email ?? "aniket.das2302@gmail.com";
 
   if (!process.env.RESEND_API_KEY) {
-    const emailHtml = buildEmailHtml(business_name, review, false);
+    const mockEmail = "test@example.com";
+    const emailHtml = buildEmailHtml(business_name, review, false, reviewToken);
     console.log("\n");
     console.log("═══════════════════════════════════════════════════════");
     console.log("  📧  REVIEWGUARD — MOCK EMAIL NOTIFICATION");
     console.log("═══════════════════════════════════════════════════════");
-    console.log(`  To:      ${toEmail}`);
+    console.log(`  To:      ${mockEmail}`);
     console.log(`  Subject: ${subject}`);
     console.log(`  Mode:    MOCK (not sent — configure Resend to enable)`);
     console.log("───────────────────────────────────────────────────────");
     console.log(`  Reviewer: ${review.reviewer_name}`);
     console.log(`  Rating:   ${stars} (${review.rating}/5)`);
     console.log(`  Excerpt:  "${review.review_text.slice(0, 100)}${review.review_text.length > 100 ? "…" : ""}"`);
+    if (reviewToken) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://reviewmill.vercel.app";
+      console.log(`  Review URL:      ${appUrl}/review/${reviewToken}`);
+      console.log(`  Quick Approve:   ${appUrl}/api/review/approve?token=${reviewToken}`);
+    }
     console.log("───────────────────────────────────────────────────────");
     console.log("  [HTML email rendered — see below for template preview]");
     console.log(emailHtml.slice(0, 200) + "...");
@@ -192,12 +235,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, mode: "mock" });
   }
 
+  if (!owner_email) {
+    return NextResponse.json(
+      { error: "owner_email is required" },
+      { status: 400 }
+    );
+  }
+
   const resend = new Resend(process.env.RESEND_API_KEY);
-  const emailHtml = buildEmailHtml(business_name, review, true);
+  const emailHtml = buildEmailHtml(business_name, review, true, reviewToken);
 
   const { data, error } = await resend.emails.send({
     from: "ReviewGuard <onboarding@resend.dev>",
-    to: toEmail,
+    to: owner_email,
     subject,
     html: emailHtml,
   });
