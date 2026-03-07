@@ -40,15 +40,28 @@ export async function GET(req: NextRequest) {
   });
   const user = await userRes.json();
 
-  // Upsert business record (creates on first sign-in, no-ops on subsequent)
+  // Upsert business record — only set business_name on first sign-in (insert),
+  // not on subsequent logins, to avoid overwriting user-edited names
   try {
-    await upsertBusiness({
-      owner_email: user.email,
-      business_name: user.name,
-      google_account_id: user.id,
-      google_access_token: tokens.access_token,
-      google_refresh_token: tokens.refresh_token,
-    });
+    const existing = await getBusinessByEmail(user.email);
+    if (existing) {
+      // Existing user — only update tokens, not business_name
+      await upsertBusiness({
+        owner_email: user.email,
+        google_account_id: user.id,
+        google_access_token: tokens.access_token,
+        google_refresh_token: tokens.refresh_token,
+      });
+    } else {
+      // New user — set business_name from Google profile as default
+      await upsertBusiness({
+        owner_email: user.email,
+        business_name: user.name,
+        google_account_id: user.id,
+        google_access_token: tokens.access_token,
+        google_refresh_token: tokens.refresh_token,
+      });
+    }
   } catch (err) {
     // Don't block sign-in if DB write fails, but log prominently
     console.error("[AUTH] upsertBusiness failed — user authenticated but DB record may be missing:", err);
