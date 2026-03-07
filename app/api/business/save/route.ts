@@ -37,8 +37,8 @@ export async function POST(req: NextRequest) {
   const MAX_INSTRUCTIONS_LENGTH = 1000;
   const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  if (business_name !== undefined && (typeof business_name !== "string" || business_name.length > MAX_NAME_LENGTH)) {
-    return NextResponse.json({ error: "Invalid business_name" }, { status: 400 });
+  if (business_name !== undefined && (typeof business_name !== "string" || business_name.trim().length === 0 || business_name.trim().length > MAX_NAME_LENGTH)) {
+    return NextResponse.json({ error: "Invalid business_name (required, max 200 chars)" }, { status: 400 });
   }
   if (business_type !== undefined && !VALID_BUSINESS_TYPES.includes(business_type as string)) {
     return NextResponse.json({ error: `Invalid business_type. Must be one of: ${VALID_BUSINESS_TYPES.join(", ")}` }, { status: 400 });
