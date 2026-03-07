@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { upsertBusiness, getBusinessByEmail } from "@/lib/db";
+import { createSessionCookieValue } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -48,12 +49,13 @@ export async function GET(req: NextRequest) {
       google_access_token: tokens.access_token,
       google_refresh_token: tokens.refresh_token,
     });
-  } catch {
-    // Don't block sign-in if DB write fails
+  } catch (err) {
+    // Don't block sign-in if DB write fails, but log prominently
+    console.error("[AUTH] upsertBusiness failed — user authenticated but DB record may be missing:", err);
   }
 
-  // Store session in cookie
-  const sessionData = JSON.stringify({
+  // Store signed session in cookie
+  const sessionValue = createSessionCookieValue({
     email: user.email,
     name: user.name,
     picture: user.picture,
@@ -62,7 +64,7 @@ export async function GET(req: NextRequest) {
   });
 
   const cookieStore = await cookies();
-  cookieStore.set("rg_session", Buffer.from(sessionData).toString("base64"), {
+  cookieStore.set("rg_session", sessionValue, {
     httpOnly: true,
     secure: true,
     sameSite: "lax",

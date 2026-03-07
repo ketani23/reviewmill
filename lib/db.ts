@@ -89,9 +89,15 @@ export async function updateBusinessProfile(
   }
 ): Promise<void> {
   const supabase = createSupabaseClient();
-  const { error } = await supabase
+  const { data: rows, error } = await supabase
     .from("businesses")
     .update(data)
-    .eq("owner_email", email);
+    .eq("owner_email", email)
+    .select("id");
   if (error) throw error;
+  if (!rows || rows.length === 0) {
+    const notFound = new Error("Business not found");
+    (notFound as Error & { code: string }).code = "BUSINESS_NOT_FOUND";
+    throw notFound;
+  }
 }
