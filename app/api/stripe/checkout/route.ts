@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getSession } from "@/lib/session";
+import { getBusinessByEmail } from "@/lib/db";
 
 const PRICE_IDS: Record<string, string | undefined> = {
   starter: process.env.STRIPE_STARTER_PRICE_ID,
@@ -24,12 +25,16 @@ export async function POST(req: NextRequest) {
   // Support both JSON body (fetch) and form data (HTML form POST)
   let plan: string | null = null;
   const contentType = req.headers.get("content-type") ?? "";
-  if (contentType.includes("application/json")) {
-    const body = await req.json();
-    plan = body.plan;
-  } else {
-    const form = await req.formData();
-    plan = form.get("plan") as string | null;
+  try {
+    if (contentType.includes("application/json")) {
+      const body = await req.json();
+      plan = body.plan;
+    } else {
+      const form = await req.formData();
+      plan = form.get("plan") as string | null;
+    }
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
   if (!plan || !PRICE_IDS[plan]) {
@@ -45,6 +50,22 @@ export async function POST(req: NextRequest) {
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+  // Prevent duplicate subscriptions — check if business already has an active one
+  try {
+    const business = await getBusinessByEmail(session.email);
+    if (business?.stripe_subscription_id) {
+      const existingSub = await stripe.subscriptions.retrieve(business.stripe_subscription_id);
+      if (existingSub && ["active", "trialing"].includes(existingSub.status)) {
+        return NextResponse.json(
+          { error: "You already have an active subscription. Manage it from Settings → Billing." },
+          { status: 409 }
+        );
+      }
+    }
+  } catch {
+    // If check fails, allow checkout to proceed (Stripe will handle dedup via customer_email)
+  }
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin;
 

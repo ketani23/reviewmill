@@ -105,11 +105,15 @@ export async function POST(req: NextRequest) {
 
         const planItem = sub.items.data[0];
         const VALID_PLANS = ["starter", "growth", "scale"] as const;
-        const rawNickname = planItem?.price?.nickname?.toLowerCase().trim();
-        // Only accept known plan names; ignore free-form nicknames like "Growth Monthly"
-        const planName = rawNickname && VALID_PLANS.includes(rawNickname as typeof VALID_PLANS[number])
-          ? (rawNickname as typeof VALID_PLANS[number])
+        // Try price metadata first (most reliable), then nickname, then fallback
+        const rawPlan = (planItem?.price?.metadata?.plan as string | undefined)
+          ?? planItem?.price?.nickname?.toLowerCase().trim();
+        const planName = rawPlan && VALID_PLANS.includes(rawPlan as typeof VALID_PLANS[number])
+          ? (rawPlan as typeof VALID_PLANS[number])
           : business.plan;
+        if (!rawPlan || !VALID_PLANS.includes(rawPlan as typeof VALID_PLANS[number])) {
+          console.warn(`[STRIPE] subscription.updated: could not derive plan from price (nickname=${planItem?.price?.nickname}, metadata=${JSON.stringify(planItem?.price?.metadata)}), keeping existing: ${business.plan}`);
+        }
 
         const trialEndsAt = sub.trial_end
           ? new Date(sub.trial_end * 1000).toISOString()
