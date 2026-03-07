@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         // Update by email (easiest since we stored it in metadata)
         const { createSupabaseClient } = await import("@/lib/supabase-server");
         const supabase = createSupabaseClient();
-        const { error: updateError } = await supabase
+        const { data: updateData, error: updateError } = await supabase
           .from("businesses")
           .update({
             stripe_customer_id: customerId,
@@ -73,13 +73,22 @@ export async function POST(req: NextRequest) {
             plan,
             trial_ends_at: trialEndsAt,
           })
-          .eq("owner_email", ownerEmail);
+          .eq("owner_email", ownerEmail)
+          .select("id");
 
         if (updateError) {
           console.error("Failed to persist checkout session to DB:", updateError);
           return NextResponse.json(
             { error: "Failed to update billing state" },
             { status: 500 }
+          );
+        }
+
+        if (!updateData || updateData.length === 0) {
+          console.error(`[STRIPE] checkout.session.completed: no business row found for ${ownerEmail}`);
+          return NextResponse.json(
+            { error: "No matching business found" },
+            { status: 404 }
           );
         }
 
@@ -95,13 +104,12 @@ export async function POST(req: NextRequest) {
         if (!business) break;
 
         const planItem = sub.items.data[0];
-        // Derive plan from price nickname or metadata if set, fallback to current
-        const planName =
-          (planItem?.price?.nickname?.toLowerCase() as
-            | "starter"
-            | "growth"
-            | "scale"
-            | undefined) ?? business.plan;
+        const VALID_PLANS = ["starter", "growth", "scale"] as const;
+        const rawNickname = planItem?.price?.nickname?.toLowerCase().trim();
+        // Only accept known plan names; ignore free-form nicknames like "Growth Monthly"
+        const planName = rawNickname && VALID_PLANS.includes(rawNickname as typeof VALID_PLANS[number])
+          ? (rawNickname as typeof VALID_PLANS[number])
+          : business.plan;
 
         const trialEndsAt = sub.trial_end
           ? new Date(sub.trial_end * 1000).toISOString()
