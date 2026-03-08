@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { upsertBusiness, getBusinessByEmail } from "@/lib/db";
+import { createSessionCookieValue } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -38,8 +40,35 @@ export async function GET(req: NextRequest) {
   });
   const user = await userRes.json();
 
-  // Store session in a cookie (simple JWT-like approach)
-  const sessionData = JSON.stringify({
+  // Upsert business record — only set business_name on first sign-in (insert),
+  // not on subsequent logins, to avoid overwriting user-edited names
+  try {
+    const existing = await getBusinessByEmail(user.email);
+    if (existing) {
+      // Existing user — only update tokens, not business_name
+      await upsertBusiness({
+        owner_email: user.email,
+        google_account_id: user.id,
+        google_access_token: tokens.access_token,
+        google_refresh_token: tokens.refresh_token,
+      });
+    } else {
+      // New user — set business_name from Google profile as default
+      await upsertBusiness({
+        owner_email: user.email,
+        business_name: user.name,
+        google_account_id: user.id,
+        google_access_token: tokens.access_token,
+        google_refresh_token: tokens.refresh_token,
+      });
+    }
+  } catch (err) {
+    // Don't block sign-in if DB write fails, but log prominently
+    console.error("[AUTH] upsertBusiness failed — user authenticated but DB record may be missing:", err);
+  }
+
+  // Store signed session in cookie
+  const sessionValue = createSessionCookieValue({
     email: user.email,
     name: user.name,
     picture: user.picture,
@@ -48,7 +77,7 @@ export async function GET(req: NextRequest) {
   });
 
   const cookieStore = await cookies();
-  cookieStore.set("rg_session", Buffer.from(sessionData).toString("base64"), {
+  cookieStore.set("rg_session", sessionValue, {
     httpOnly: true,
     secure: true,
     sameSite: "lax",
@@ -56,5 +85,15 @@ export async function GET(req: NextRequest) {
     maxAge: 60 * 60 * 24 * 30, // 30 days
   });
 
-  return NextResponse.redirect(new URL("/dashboard", req.url));
+  // Check if onboarding is needed (business_type not yet set)
+  let redirectPath = "/onboarding";
+  try {
+    const business = await getBusinessByEmail(user.email);
+    if (business?.business_type) redirectPath = "/dashboard";
+  } catch {
+    // DB error — send to dashboard, it will handle fallback
+    redirectPath = "/dashboard";
+  }
+
+  return NextResponse.redirect(new URL(redirectPath, req.url));
 }
