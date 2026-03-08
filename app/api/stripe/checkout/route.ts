@@ -37,7 +37,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  if (!plan || !PRICE_IDS[plan]) {
+  const VALID_PLANS = ["starter", "growth", "scale"] as const;
+  if (!plan || !VALID_PLANS.includes(plan as typeof VALID_PLANS[number])) {
     return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
   }
 
@@ -63,8 +64,13 @@ export async function POST(req: NextRequest) {
         );
       }
     }
-  } catch {
-    // If check fails, allow checkout to proceed (Stripe will handle dedup via customer_email)
+  } catch (err) {
+    // Fail closed — if we can't verify subscription status, block checkout
+    console.error("[STRIPE] Failed to check existing subscription:", err);
+    return NextResponse.json(
+      { error: "Unable to verify subscription status. Please try again." },
+      { status: 503 }
+    );
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL;

@@ -89,11 +89,9 @@ export async function POST(req: NextRequest) {
         }
 
         if (!updateData || updateData.length === 0) {
-          console.error(`[STRIPE] checkout.session.completed: no business row found for ${ownerEmail}`);
-          return NextResponse.json(
-            { error: "No matching business found" },
-            { status: 404 }
-          );
+          // Log but acknowledge the event (200) to prevent Stripe from retrying forever.
+          // The business row may not exist yet if auth DB write failed — retrying won't help.
+          console.error(`[STRIPE] checkout.session.completed: no business row found for ${ownerEmail} — acknowledging to stop retries`);
         }
 
         break;
