@@ -22,12 +22,13 @@ export function getReviewLimit(plan: Plan): number {
   return REVIEW_LIMITS[plan];
 }
 
+const PAID_PLANS: Plan[] = ["starter", "growth", "scale"];
+
 export function isPlanActive(business: {
   plan: string;
   trial_ends_at?: string | null;
 }): boolean {
-  const plan = business.plan as Plan;
-  if (plan === "free") return false;
+  if (!PAID_PLANS.includes(business.plan as Plan)) return false;
   // Active paid plan (subscription)
   if (!business.trial_ends_at) return true;
   // Still within trial period

@@ -67,7 +67,10 @@ export async function POST(req: NextRequest) {
     // If check fails, allow checkout to proceed (Stripe will handle dedup via customer_email)
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!baseUrl) {
+    return NextResponse.json({ error: "NEXT_PUBLIC_APP_URL not configured" }, { status: 503 });
+  }
 
   const checkoutSession = await stripe.checkout.sessions.create({
     mode: "subscription",

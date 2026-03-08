@@ -25,7 +25,10 @@ export async function POST(req: NextRequest) {
   }
 
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin;
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!baseUrl) {
+    return NextResponse.json({ error: "NEXT_PUBLIC_APP_URL not configured" }, { status: 503 });
+  }
 
   const portalSession = await stripe.billingPortal.sessions.create({
     customer: business.stripe_customer_id,

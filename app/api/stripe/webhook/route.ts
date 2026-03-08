@@ -39,7 +39,11 @@ export async function POST(req: NextRequest) {
           (session.metadata?.owner_email as string | undefined) ??
           session.customer_email ??
           null;
-        const plan = (session.metadata?.plan as string | undefined) ?? "starter";
+        const VALID_PLANS = ["starter", "growth", "scale"] as const;
+        const rawPlan = (session.metadata?.plan as string | undefined);
+        const plan = rawPlan && VALID_PLANS.includes(rawPlan as typeof VALID_PLANS[number])
+          ? rawPlan
+          : "starter";
 
         if (!ownerEmail) break;
 
