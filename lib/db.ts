@@ -36,13 +36,15 @@ export async function getBusinessByEmail(
   email: string
 ): Promise<Business | null> {
   const supabase = createSupabaseClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("businesses")
     .select(
       "id, owner_email, business_name, google_account_id, brand_voice, business_type, voice_tone, custom_instructions, notifications_enabled, notification_email, stripe_customer_id, stripe_subscription_id, plan, trial_ends_at, created_at"
     )
     .eq("owner_email", email)
     .single();
+  // PGRST116 = no rows found, which is expected
+  if (error && error.code !== "PGRST116") throw error;
   return data ?? null;
 }
 
