@@ -4,7 +4,13 @@ import { useState } from "react";
 import { AppHeader } from "./AppHeader";
 import { Business } from "@/lib/db";
 
-const BUSINESS_TYPES = ["Restaurant", "Salon", "Dentist", "Auto Shop", "Other"];
+const BUSINESS_TYPES = [
+  { value: "restaurant", label: "Restaurant" },
+  { value: "salon", label: "Salon" },
+  { value: "dentist", label: "Dentist" },
+  { value: "auto_shop", label: "Auto Shop" },
+  { value: "other", label: "Other" },
+];
 const VOICE_TONES = ["professional", "friendly", "casual"] as const;
 
 type Props = {
@@ -115,8 +121,8 @@ export function SettingsContent({ email, name, business }: Props) {
                 >
                   <option value="">Select a type…</option>
                   {BUSINESS_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
+                    <option key={t.value} value={t.value}>
+                      {t.label}
                     </option>
                   ))}
                 </select>
