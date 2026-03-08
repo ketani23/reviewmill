@@ -63,8 +63,15 @@ export async function GET(req: NextRequest) {
       });
     }
   } catch (err) {
-    // Don't block sign-in if DB write fails, but log prominently
     console.error("[AUTH] upsertBusiness failed — user authenticated but DB record may be missing:", err);
+    // For new users, a missing DB record means nothing works — redirect to error
+    // For existing users (token refresh failed), we can still proceed
+    const existingCheck = await getBusinessByEmail(user.email).catch(() => null);
+    if (!existingCheck) {
+      return NextResponse.redirect(
+        new URL("/dashboard?error=db_setup_failed", req.url)
+      );
+    }
   }
 
   // Store signed session in cookie
