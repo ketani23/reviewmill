@@ -37,9 +37,8 @@ export async function POST(req: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    console.error("Webhook signature verification failed:", msg);
-    return NextResponse.json({ error: `Webhook error: ${msg}` }, { status: 400 });
+    console.error("Webhook signature verification failed:", err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: "Invalid webhook signature" }, { status: 400 });
   }
 
   try {
@@ -120,9 +119,28 @@ export async function POST(req: NextRequest) {
         }
 
         if (!updateData || updateData.length === 0) {
-          // Log but acknowledge the event (200) to prevent Stripe from retrying forever.
-          // The business row may not exist yet if auth DB write failed — retrying won't help.
-          console.error(`[STRIPE] checkout.session.completed: no business row found for ${ownerEmail} — acknowledging to stop retries`);
+          // Business row doesn't exist — create it with Stripe fields so billing state isn't lost
+          console.warn(`[STRIPE] checkout.session.completed: no business row for ${ownerEmail} — upserting`);
+          const { error: upsertError } = await supabase
+            .from("businesses")
+            .upsert(
+              {
+                owner_email: ownerEmail,
+                stripe_customer_id: customerId,
+                stripe_subscription_id: subscriptionId,
+                plan,
+                trial_ends_at: trialEndsAt,
+              },
+              { onConflict: "owner_email" }
+            );
+
+          if (upsertError) {
+            console.error("[STRIPE] Failed to upsert business on checkout:", upsertError);
+            return NextResponse.json(
+              { warning: "Event received but business could not be created" },
+              { status: 202 }
+            );
+          }
         }
 
         break;
@@ -134,7 +152,13 @@ export async function POST(req: NextRequest) {
           typeof sub.customer === "string" ? sub.customer : sub.customer.id;
 
         const business = await getBusinessByStripeCustomerId(customerId);
-        if (!business) break;
+        if (!business) {
+          console.warn(`[STRIPE] subscription.updated: no business for customer ${customerId}`);
+          return NextResponse.json(
+            { warning: "Event received but no matching business found" },
+            { status: 202 }
+          );
+        }
 
         // HIGH: Only grant paid access for genuinely active subscriptions.
         // past_due / unpaid / incomplete_expired / canceled → downgrade to free.
@@ -188,7 +212,13 @@ export async function POST(req: NextRequest) {
           typeof sub.customer === "string" ? sub.customer : sub.customer.id;
 
         const business = await getBusinessByStripeCustomerId(customerId);
-        if (!business) break;
+        if (!business) {
+          console.warn(`[STRIPE] subscription.deleted: no business for customer ${customerId}`);
+          return NextResponse.json(
+            { warning: "Event received but no matching business found" },
+            { status: 202 }
+          );
+        }
 
         await updateBusinessStripe(business.owner_email, {
           plan: "free",

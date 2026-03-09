@@ -20,7 +20,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const business = await getBusinessByEmail(session.email);
+  let business;
+  try {
+    business = await getBusinessByEmail(session.email);
+  } catch (err) {
+    console.error("[STRIPE] portal: failed to fetch business:", err);
+    return NextResponse.json(
+      { error: "Unable to load account data. Please try again." },
+      { status: 500 }
+    );
+  }
   if (!business?.stripe_customer_id) {
     return NextResponse.json(
       { error: "No Stripe customer found" },

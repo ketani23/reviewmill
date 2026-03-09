@@ -23,7 +23,10 @@ export async function POST(req: NextRequest) {
 
   const session = await getSession();
   if (!session) {
-    return NextResponse.redirect(new URL("/api/auth/google", req.url));
+    return NextResponse.json(
+      { error: "Unauthorized", redirect: "/api/auth/google" },
+      { status: 401 }
+    );
   }
 
   // Support both JSON body (fetch) and form data (HTML form POST)
