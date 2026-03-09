@@ -2,32 +2,7 @@
 
 import { useState } from "react";
 import { AppHeader } from "./AppHeader";
-
-const BUSINESS_TYPES = [
-  "Restaurant",
-  "Salon",
-  "Dentist",
-  "Auto Shop",
-  "Other",
-] as const;
-
-const VOICE_TONES = [
-  {
-    id: "professional",
-    label: "Professional",
-    desc: "Formal and polished — ideal for medical, legal, or corporate businesses.",
-  },
-  {
-    id: "friendly",
-    label: "Friendly",
-    desc: "Warm and approachable — great for restaurants, salons, and retail.",
-  },
-  {
-    id: "casual",
-    label: "Casual",
-    desc: "Relaxed and conversational — perfect for cafes, gyms, and creative shops.",
-  },
-] as const;
+import { BUSINESS_TYPES, VOICE_TONES } from "@/lib/constants";
 
 type Props = {
   email: string;
@@ -148,8 +123,8 @@ export function OnboardingWizard({ email, defaultName }: Props) {
                   >
                     <option value="">Select a type…</option>
                     {BUSINESS_TYPES.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
+                      <option key={t.value} value={t.value}>
+                        {t.label}
                       </option>
                     ))}
                   </select>

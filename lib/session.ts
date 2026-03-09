@@ -5,8 +5,6 @@ export interface RGSession {
   email: string;
   name: string;
   picture?: string;
-  accessToken: string;
-  refreshToken?: string;
 }
 
 function getSecret(): string {

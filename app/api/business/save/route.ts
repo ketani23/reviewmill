@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { updateBusinessProfile } from "@/lib/db";
+import { checkOrigin } from "@/lib/csrf";
+import { BUSINESS_TYPES, VOICE_TONES } from "@/lib/constants";
+
+const VALID_BUSINESS_TYPES = BUSINESS_TYPES.map((t) => t.value);
+const VALID_VOICE_TONES = VOICE_TONES.map((t) => t.id);
 
 export async function POST(req: NextRequest) {
+  const csrfError = checkOrigin(req);
+  if (csrfError) return csrfError;
+
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -24,15 +32,16 @@ export async function POST(req: NextRequest) {
     notification_email,
   } = body;
 
-  // Normalize business_type to lowercase with underscores so title-case values from the frontend work
-  const business_type =
+  // Normalize business_type to lowercase with underscores so title-case values from the frontend work.
+  // Treat empty string as undefined — skip validation and don't update the field.
+  const rawNormalized =
     typeof rawBusinessType === "string"
       ? rawBusinessType.toLowerCase().replace(/\s+/g, "_")
       : rawBusinessType;
+  const business_type =
+    rawNormalized === "" ? undefined : rawNormalized;
 
   // Validate input types and values
-  const VALID_BUSINESS_TYPES = ["restaurant", "salon", "dentist", "auto_shop", "other"];
-  const VALID_VOICE_TONES = ["professional", "friendly", "casual"];
   const MAX_NAME_LENGTH = 200;
   const MAX_INSTRUCTIONS_LENGTH = 1000;
   const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -40,10 +49,10 @@ export async function POST(req: NextRequest) {
   if (business_name !== undefined && (typeof business_name !== "string" || business_name.trim().length === 0 || business_name.trim().length > MAX_NAME_LENGTH)) {
     return NextResponse.json({ error: "Invalid business_name (required, max 200 chars)" }, { status: 400 });
   }
-  if (business_type !== undefined && !VALID_BUSINESS_TYPES.includes(business_type as string)) {
+  if (business_type !== undefined && !(VALID_BUSINESS_TYPES as readonly string[]).includes(business_type as string)) {
     return NextResponse.json({ error: `Invalid business_type. Must be one of: ${VALID_BUSINESS_TYPES.join(", ")}` }, { status: 400 });
   }
-  if (voice_tone !== undefined && !VALID_VOICE_TONES.includes(voice_tone as string)) {
+  if (voice_tone !== undefined && !(VALID_VOICE_TONES as readonly string[]).includes(voice_tone as string)) {
     return NextResponse.json({ error: `Invalid voice_tone. Must be one of: ${VALID_VOICE_TONES.join(", ")}` }, { status: 400 });
   }
   if (custom_instructions !== undefined && (typeof custom_instructions !== "string" || custom_instructions.length > MAX_INSTRUCTIONS_LENGTH)) {
