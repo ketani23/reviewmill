@@ -1,7 +1,7 @@
 type Props = {
   email: string;
   businessName?: string;
-  currentPage?: "dashboard" | "settings" | "onboarding";
+  currentPage?: "dashboard" | "settings" | "onboarding" | "billing";
 };
 
 export function AppHeader({
@@ -27,9 +27,15 @@ export function AppHeader({
         </div>
         <div className="flex items-center gap-4">
           <a
+            href="/pricing"
+            className="text-sm text-gray-300 hover:text-white transition-colors hidden sm:inline"
+          >
+            Pricing
+          </a>
+          <a
             href="/settings"
             className={`text-sm transition-colors flex items-center gap-1.5 ${
-              currentPage === "settings"
+              currentPage === "settings" || currentPage === "billing"
                 ? "text-[#e8a838]"
                 : "text-gray-300 hover:text-white"
             }`}

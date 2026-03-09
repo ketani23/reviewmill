@@ -11,6 +11,10 @@ export type Business = {
   custom_instructions: string | null;
   notifications_enabled: boolean;
   notification_email: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  plan: string;
+  trial_ends_at: string | null;
   created_at: string;
 };
 
@@ -35,11 +39,44 @@ export async function getBusinessByEmail(
   const { data, error } = await supabase
     .from("businesses")
     .select(
-      "id, owner_email, business_name, google_account_id, brand_voice, business_type, voice_tone, custom_instructions, notifications_enabled, notification_email, created_at"
+      "id, owner_email, business_name, google_account_id, brand_voice, business_type, voice_tone, custom_instructions, notifications_enabled, notification_email, stripe_customer_id, stripe_subscription_id, plan, trial_ends_at, created_at"
     )
     .eq("owner_email", email)
     .single();
   // PGRST116 = no rows found, which is expected
+  if (error && error.code !== "PGRST116") throw error;
+  return data ?? null;
+}
+
+export async function updateBusinessStripe(
+  email: string,
+  data: {
+    stripe_customer_id?: string | null;
+    stripe_subscription_id?: string | null;
+    plan?: string;
+    trial_ends_at?: string | null;
+  }
+): Promise<void> {
+  const supabase = createSupabaseClient();
+  const { error } = await supabase
+    .from("businesses")
+    .update(data)
+    .eq("owner_email", email);
+  if (error) throw error;
+}
+
+export async function getBusinessByStripeCustomerId(
+  stripeCustomerId: string
+): Promise<Business | null> {
+  const supabase = createSupabaseClient();
+  const { data, error } = await supabase
+    .from("businesses")
+    .select(
+      "id, owner_email, business_name, google_account_id, brand_voice, business_type, voice_tone, custom_instructions, notifications_enabled, notification_email, stripe_customer_id, stripe_subscription_id, plan, trial_ends_at, created_at"
+    )
+    .eq("stripe_customer_id", stripeCustomerId)
+    .single();
+  // PGRST116 = no rows found, which is expected (not an error)
   if (error && error.code !== "PGRST116") throw error;
   return data ?? null;
 }
