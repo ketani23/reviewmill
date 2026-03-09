@@ -37,7 +37,7 @@ const STAR_RATING_MAP: Record<string, number> = {
 };
 
 export function starRatingToNumber(rating: string): number {
-  return STAR_RATING_MAP[rating] ?? 0;
+  return STAR_RATING_MAP[rating] ?? 1;
 }
 
 // --- Token Management ---

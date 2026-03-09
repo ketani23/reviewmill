@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { getReviewsByBusiness } from "@/lib/db";
+import { getBusinessByEmail, getReviewsByBusiness } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -11,6 +11,11 @@ export async function GET(req: NextRequest) {
   const businessId = req.nextUrl.searchParams.get("businessId");
   if (!businessId) {
     return NextResponse.json({ error: "businessId is required" }, { status: 400 });
+  }
+
+  const business = await getBusinessByEmail(session.email);
+  if (!business || business.id !== businessId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {

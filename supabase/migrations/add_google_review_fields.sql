@@ -26,9 +26,6 @@ CREATE INDEX IF NOT EXISTS idx_reviews_business_id ON reviews(business_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_google_review_id ON reviews(google_review_id)
   WHERE google_review_id IS NOT NULL;
 
--- RLS policies
-ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
-
--- Allow service role full access (API routes use service-role key or anon with policies)
-CREATE POLICY "Allow all for service role" ON reviews
-  FOR ALL USING (true) WITH CHECK (true);
+-- No RLS on reviews table: all access goes through authenticated server-side
+-- API routes that enforce ownership checks (e.g. reviews/list, reviews/reply).
+-- The app uses the anon key from server-side only, never from the browser.
