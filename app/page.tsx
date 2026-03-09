@@ -1,7 +1,10 @@
 import WaitlistForm from "@/components/WaitlistForm";
 import FAQ from "@/components/FAQ";
+import { getSession } from "@/lib/session";
 
-export default function Home() {
+export default async function Home() {
+  const session = await getSession();
+
   return (
     <div className="min-h-screen bg-white text-[#1a1a2e]">
       {/* ── Nav ── */}
@@ -10,12 +13,35 @@ export default function Home() {
           <span className="text-white font-bold text-lg tracking-tight">
             Review<span className="text-[#e8a838]">Guard</span>
           </span>
-          <a
-            href="#waitlist"
-            className="bg-[#e8a838] hover:bg-[#d4922a] text-[#1a1a2e] font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
-          >
-            Join Beta
-          </a>
+          <div className="flex items-center gap-4">
+            <a
+              href="/pricing"
+              className="text-gray-300 hover:text-white text-sm font-medium transition-colors"
+            >
+              Pricing
+            </a>
+            {session ? (
+              <a
+                href="/dashboard"
+                className="text-gray-300 hover:text-white text-sm font-medium transition-colors"
+              >
+                Dashboard
+              </a>
+            ) : (
+              <a
+                href="/api/auth/google"
+                className="text-gray-300 hover:text-white text-sm font-medium transition-colors"
+              >
+                Sign In
+              </a>
+            )}
+            <a
+              href="#waitlist"
+              className="bg-[#e8a838] hover:bg-[#d4922a] text-[#1a1a2e] font-semibold text-sm px-4 py-2 rounded-lg transition-colors"
+            >
+              Join Beta
+            </a>
+          </div>
         </div>
       </nav>
 

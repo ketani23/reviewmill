@@ -4,10 +4,12 @@ import { useState } from "react";
 import { Review, mockReviews, SIMULATE_POOL } from "@/lib/mockData";
 import { ReviewCard } from "@/components/ReviewCard";
 import { ToastProvider, useToast } from "@/components/Toast";
+import { AppHeader } from "@/components/AppHeader";
 
 type Props = {
   email: string;
   name: string;
+  businessName: string;
 };
 
 function Spinner() {
@@ -30,7 +32,7 @@ function Spinner() {
   );
 }
 
-function DashboardInner({ email }: Props) {
+function DashboardInner({ email, businessName }: Props) {
   const [reviews, setReviews] = useState<Review[]>(mockReviews);
   const [isSimulating, setIsSimulating] = useState(false);
   const { showToast } = useToast();
@@ -64,7 +66,7 @@ function DashboardInner({ email }: Props) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          business_name: "Tony's Pizzeria",
+          business_name: businessName,
           review: newReview,
         }),
       });
@@ -91,32 +93,13 @@ function DashboardInner({ email }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top nav */}
-      <header className="bg-[#1a1a2e] text-white px-6 py-4">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="text-lg font-bold tracking-tight">ReviewGuard</span>
-            <span className="text-[#e8a838] text-sm font-medium hidden sm:inline">
-              Dashboard
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-300 hidden sm:inline">{email}</span>
-            <a
-              href="/api/auth/logout"
-              className="text-sm text-gray-300 hover:text-white transition-colors"
-            >
-              Sign out
-            </a>
-          </div>
-        </div>
-      </header>
+      <AppHeader email={email} businessName={businessName} currentPage="dashboard" />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         {/* Business header + simulate button */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-xl font-bold text-[#1a1a2e]">Tony&apos;s Pizzeria</h2>
+            <h2 className="text-xl font-bold text-[#1a1a2e]">{businessName}</h2>
             <p className="text-sm text-gray-400">
               Google Business Profile &middot;{" "}
               <span className="text-amber-500 font-medium">Demo Mode</span>
@@ -182,7 +165,7 @@ function DashboardInner({ email }: Props) {
         </div>
 
         <p className="text-xs text-gray-400 text-center mt-8">
-          Showing demo data for Tony&apos;s Pizzeria — real Google Business reviews
+          Showing demo data for {businessName} — real Google Business reviews
           will appear here once the API connection is live.
         </p>
       </main>
@@ -190,10 +173,10 @@ function DashboardInner({ email }: Props) {
   );
 }
 
-export function DashboardContent(props: Props) {
+export function DashboardContent({ email, name, businessName }: Props) {
   return (
     <ToastProvider>
-      <DashboardInner {...props} />
+      <DashboardInner email={email} name={name} businessName={businessName} />
     </ToastProvider>
   );
 }

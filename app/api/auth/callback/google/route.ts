@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { upsertBusiness, getBusinessByEmail } from "@/lib/db";
+import { createSessionCookieValue } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -36,19 +38,63 @@ export async function GET(req: NextRequest) {
   const userRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
     headers: { Authorization: `Bearer ${tokens.access_token}` },
   });
+
+  if (!userRes.ok) {
+    console.error("[AUTH] Google userinfo request failed:", userRes.status);
+    return NextResponse.redirect(
+      new URL("/dashboard?error=userinfo_failed", req.url)
+    );
+  }
+
   const user = await userRes.json();
 
-  // Store session in a cookie (simple JWT-like approach)
-  const sessionData = JSON.stringify({
+  if (!user.email || typeof user.email !== "string") {
+    console.error("[AUTH] Google userinfo returned no email (status:", userRes.status, ")");
+    return NextResponse.redirect(
+      new URL("/dashboard?error=missing_email", req.url)
+    );
+  }
+
+  // Upsert business record — only set business_name on first sign-in (insert),
+  // not on subsequent logins, to avoid overwriting user-edited names
+  try {
+    const existing = await getBusinessByEmail(user.email);
+    if (existing) {
+      // Existing user — only update tokens, not business_name
+      await upsertBusiness({
+        owner_email: user.email,
+        google_account_id: user.id,
+        google_access_token: tokens.access_token,
+        google_refresh_token: tokens.refresh_token,
+      });
+    } else {
+      // New user — set business_name from Google profile as default
+      await upsertBusiness({
+        owner_email: user.email,
+        business_name: user.name,
+        google_account_id: user.id,
+        google_access_token: tokens.access_token,
+        google_refresh_token: tokens.refresh_token,
+      });
+    }
+  } catch (err) {
+    console.error("[AUTH] upsertBusiness failed:", err);
+    // Fail auth for both new and existing users — stale tokens will break features
+    return NextResponse.redirect(
+      new URL("/dashboard?error=db_setup_failed", req.url)
+    );
+  }
+
+  // Store signed session in cookie — tokens are NOT included here;
+  // they're persisted in the DB (google_access_token / google_refresh_token).
+  const sessionValue = createSessionCookieValue({
     email: user.email,
     name: user.name,
     picture: user.picture,
-    accessToken: tokens.access_token,
-    refreshToken: tokens.refresh_token,
   });
 
   const cookieStore = await cookies();
-  cookieStore.set("rg_session", Buffer.from(sessionData).toString("base64"), {
+  cookieStore.set("rg_session", sessionValue, {
     httpOnly: true,
     secure: true,
     sameSite: "lax",
@@ -56,5 +102,15 @@ export async function GET(req: NextRequest) {
     maxAge: 60 * 60 * 24 * 30, // 30 days
   });
 
-  return NextResponse.redirect(new URL("/dashboard", req.url));
+  // Check if onboarding is needed (business_type not yet set)
+  let redirectPath = "/onboarding";
+  try {
+    const business = await getBusinessByEmail(user.email);
+    if (business?.business_type) redirectPath = "/dashboard";
+  } catch {
+    // DB error — send to dashboard, it will handle fallback
+    redirectPath = "/dashboard";
+  }
+
+  return NextResponse.redirect(new URL(redirectPath, req.url));
 }

@@ -9,18 +9,31 @@ type ReviewPayload = {
   review_date: string;
 };
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function buildEmailHtml(
   businessName: string,
   review: ReviewPayload,
   liveMode: boolean,
   reviewToken: string | null
 ): string {
+  const safeBizName = escapeHtml(businessName);
+  const safeReviewerName = escapeHtml(review.reviewer_name);
+  const safeReviewText = escapeHtml(review.review_text);
+
   const rating = Math.min(5, Math.max(0, Math.round(review.rating)));
   const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
   const snippet =
-    review.review_text.length > 180
-      ? review.review_text.slice(0, 180) + "…"
-      : review.review_text;
+    safeReviewText.length > 180
+      ? safeReviewText.slice(0, 180) + "…"
+      : safeReviewText;
   const ratingLabel =
     rating === 5
       ? "Excellent"
@@ -58,7 +71,7 @@ function buildEmailHtml(
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>New Review Alert — ${businessName}</title>
+  <title>New Review Alert — ${safeBizName}</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f3f4f6;font-family:Arial,Helvetica,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
@@ -95,7 +108,7 @@ function buildEmailHtml(
           <tr>
             <td style="padding:32px;">
               <p style="margin:0 0 8px;font-size:15px;color:#374151;">
-                A new review was posted for <strong style="color:#1a1a2e;">${businessName}</strong>.
+                A new review was posted for <strong style="color:#1a1a2e;">${safeBizName}</strong>.
                 Businesses that respond quickly see higher trust and better rankings.
               </p>
 
@@ -117,7 +130,7 @@ function buildEmailHtml(
                         </td>
                       </tr>
                     </table>
-                    <p style="margin:6px 0 0;font-size:14px;font-weight:600;color:#1a1a2e;">${review.reviewer_name}</p>
+                    <p style="margin:6px 0 0;font-size:14px;font-weight:600;color:#1a1a2e;">${safeReviewerName}</p>
                   </td>
                 </tr>
 
