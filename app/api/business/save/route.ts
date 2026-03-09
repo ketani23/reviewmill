@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid notifications_enabled (must be boolean)" }, { status: 400 });
   }
   // If enabling notifications, require a valid email
-  if (notifications_enabled === true && (!notification_email || !EMAIL_REGEX.test(notification_email))) {
+  if (notifications_enabled === true && (typeof notification_email !== "string" || !EMAIL_REGEX.test(notification_email))) {
     return NextResponse.json({ error: "A valid notification_email is required when enabling notifications" }, { status: 400 });
   }
   if (notification_email !== undefined && notification_email !== "" && (typeof notification_email !== "string" || !EMAIL_REGEX.test(notification_email))) {
