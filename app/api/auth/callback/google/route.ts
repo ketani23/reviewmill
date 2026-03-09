@@ -38,7 +38,22 @@ export async function GET(req: NextRequest) {
   const userRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
     headers: { Authorization: `Bearer ${tokens.access_token}` },
   });
+
+  if (!userRes.ok) {
+    console.error("[AUTH] Google userinfo request failed:", userRes.status);
+    return NextResponse.redirect(
+      new URL("/dashboard?error=userinfo_failed", req.url)
+    );
+  }
+
   const user = await userRes.json();
+
+  if (!user.email || typeof user.email !== "string") {
+    console.error("[AUTH] Google userinfo returned no email:", user);
+    return NextResponse.redirect(
+      new URL("/dashboard?error=missing_email", req.url)
+    );
+  }
 
   // Upsert business record — only set business_name on first sign-in (insert),
   // not on subsequent logins, to avoid overwriting user-edited names
