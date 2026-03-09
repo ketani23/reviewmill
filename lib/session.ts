@@ -11,8 +11,7 @@ function getSecret(): string {
   const secret = process.env.SESSION_SECRET;
   if (!secret) {
     throw new Error(
-      "SESSION_SECRET environment variable is not set. " +
-      "Generate a strong random secret (e.g. openssl rand -hex 32) and add it to your .env.local file."
+      "SESSION_SECRET is required. Generate one with: openssl rand -hex 32"
     );
   }
   return secret;

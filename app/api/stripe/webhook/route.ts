@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
         if (rawPlanMeta && VALID_PLANS.includes(rawPlanMeta as Plan)) {
           plan = rawPlanMeta as Plan;
         } else {
-          plan = "starter"; // will be overridden below if price ID matches
+          plan = "free"; // will be overridden below if price ID matches
         }
 
         if (subscriptionId) {
@@ -90,9 +90,9 @@ export async function POST(req: NextRequest) {
               console.warn(
                 `[STRIPE] WARN: checkout.session.completed — could not determine plan ` +
                 `from metadata (plan=${rawPlanMeta}) or price ID (${priceId}); ` +
-                `defaulting to 'starter'. Check STRIPE_*_PRICE_ID env vars.`
+                `defaulting to 'free'. Check STRIPE_*_PRICE_ID env vars.`
               );
-              // plan remains 'starter' from above
+              // plan remains 'free' — fail-safe, don't grant paid access on config errors
             }
           }
         }

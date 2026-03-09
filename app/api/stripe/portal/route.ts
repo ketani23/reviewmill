@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getSession } from "@/lib/session";
 import { getBusinessByEmail } from "@/lib/db";
+import { checkOrigin } from "@/lib/csrf";
 
 export async function POST(req: NextRequest) {
+  const csrfError = checkOrigin(req);
+  if (csrfError) return csrfError;
+
   if (!process.env.STRIPE_SECRET_KEY) {
     return NextResponse.json(
       { error: "Stripe not configured" },
