@@ -66,7 +66,7 @@ export default async function DashboardPage() {
   let businessName = session.name ?? "Your Business";
   try {
     const business = await getBusinessByEmail(session.email);
-    if (business && !business.business_type) {
+    if (!business || !business.business_type) {
       redirect("/onboarding");
     }
     if (business?.business_name) {
