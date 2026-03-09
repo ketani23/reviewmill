@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
 
         // Determine plan — prefer metadata, fall back to price ID, last resort 'starter'
         const rawPlanMeta = session.metadata?.plan as string | undefined;
-        let plan: Plan;
+        let plan: Plan | "free";
         let trialEndsAt: string | null = null;
 
         if (rawPlanMeta && VALID_PLANS.includes(rawPlanMeta as Plan)) {

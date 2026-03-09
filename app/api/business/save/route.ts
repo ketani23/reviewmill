@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { updateBusinessProfile } from "@/lib/db";
+import { createSupabaseClient } from "@/lib/supabase-server";
 import { checkOrigin } from "@/lib/csrf";
 import { BUSINESS_TYPES, VOICE_TONES } from "@/lib/constants";
 
@@ -81,6 +82,30 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (err) {
     if ((err as Error & { code?: string }).code === "BUSINESS_NOT_FOUND") {
+      // Onboarding case: business row doesn't exist yet. If the save includes
+      // business_name + business_type (required onboarding fields), create it.
+      if (business_name && business_type) {
+        const supabase = createSupabaseClient();
+        const upsertData: Record<string, unknown> = {
+          owner_email: session.email,
+          business_name: (business_name as string).trim(),
+          business_type: business_type as string,
+        };
+        if (voice_tone !== undefined) upsertData.voice_tone = voice_tone as string;
+        if (custom_instructions !== undefined) upsertData.custom_instructions = (custom_instructions as string).trim();
+        if (notifications_enabled !== undefined) upsertData.notifications_enabled = notifications_enabled as boolean;
+        if (notification_email !== undefined) upsertData.notification_email = (notification_email as string).trim();
+
+        const { error: upsertError } = await supabase
+          .from("businesses")
+          .upsert(upsertData, { onConflict: "owner_email" });
+
+        if (upsertError) {
+          console.error("Failed to upsert business on onboarding:", upsertError);
+          return NextResponse.json({ error: "Failed to save" }, { status: 500 });
+        }
+        return NextResponse.json({ ok: true });
+      }
       return NextResponse.json({ error: "Business not found" }, { status: 404 });
     }
     console.error("Failed to save business profile:", err);
