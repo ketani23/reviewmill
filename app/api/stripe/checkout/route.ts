@@ -60,17 +60,31 @@ export async function POST(req: NextRequest) {
   try {
     const business = await getBusinessByEmail(session.email);
     if (business?.stripe_subscription_id) {
-      const existingSub = await stripe.subscriptions.retrieve(business.stripe_subscription_id);
-      if (existingSub && ["active", "trialing"].includes(existingSub.status)) {
-        return NextResponse.json(
-          { error: "You already have an active subscription. Manage it from Settings → Billing." },
-          { status: 409 }
-        );
+      try {
+        const existingSub = await stripe.subscriptions.retrieve(business.stripe_subscription_id);
+        if (existingSub && ["active", "trialing"].includes(existingSub.status)) {
+          return NextResponse.json(
+            { error: "You already have an active subscription. Manage it from Settings → Billing." },
+            { status: 409 }
+          );
+        }
+      } catch (stripeErr: unknown) {
+        // Stripe 404 = subscription no longer exists (deleted/stale), safe to proceed
+        const isNotFound = stripeErr && typeof stripeErr === "object" && "statusCode" in stripeErr && (stripeErr as { statusCode: number }).statusCode === 404;
+        if (!isNotFound) {
+          console.error("[STRIPE] Failed to verify existing subscription:", stripeErr);
+          return NextResponse.json(
+            { error: "Unable to verify subscription status. Please try again." },
+            { status: 503 }
+          );
+        }
+        // Stale ID — proceed with new checkout
+        console.warn(`[STRIPE] Stale subscription ID ${business.stripe_subscription_id} — allowing new checkout`);
       }
     }
   } catch (err) {
-    // Fail closed — if we can't verify subscription status, block checkout
-    console.error("[STRIPE] Failed to check existing subscription:", err);
+    // DB lookup failed — fail closed
+    console.error("[STRIPE] Failed to check business for existing subscription:", err);
     return NextResponse.json(
       { error: "Unable to verify subscription status. Please try again." },
       { status: 503 }

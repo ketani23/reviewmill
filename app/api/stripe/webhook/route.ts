@@ -152,14 +152,21 @@ export async function POST(req: NextRequest) {
         }
 
         const planItem = sub.items.data[0];
-        // Try price metadata first (most reliable), then nickname, then fallback
+        const priceId = planItem?.price?.id ?? "";
+        // Try price metadata first, then nickname, then price ID env var match, then keep existing
         const rawPlan = (planItem?.price?.metadata?.plan as string | undefined)
           ?? planItem?.price?.nickname?.toLowerCase().trim();
-        const planName = rawPlan && VALID_PLANS.includes(rawPlan as Plan)
-          ? (rawPlan as Plan)
-          : business.plan;
-        if (!rawPlan || !VALID_PLANS.includes(rawPlan as Plan)) {
-          console.warn(`[STRIPE] subscription.updated: could not derive plan from price (nickname=${planItem?.price?.nickname}, metadata=${JSON.stringify(planItem?.price?.metadata)}), keeping existing: ${business.plan}`);
+        let planName: Plan;
+        if (rawPlan && VALID_PLANS.includes(rawPlan as Plan)) {
+          planName = rawPlan as Plan;
+        } else {
+          const derived = planFromPriceId(priceId);
+          if (derived) {
+            planName = derived;
+          } else {
+            planName = business.plan as Plan;
+            console.warn(`[STRIPE] subscription.updated: could not derive plan from metadata=${JSON.stringify(planItem?.price?.metadata)}, nickname=${planItem?.price?.nickname}, priceId=${priceId} — keeping existing: ${business.plan}`);
+          }
         }
 
         const trialEndsAt = sub.trial_end
