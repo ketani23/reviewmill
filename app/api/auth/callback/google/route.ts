@@ -74,13 +74,12 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Store signed session in cookie
+  // Store signed session in cookie — tokens are NOT included here;
+  // they're persisted in the DB (google_access_token / google_refresh_token).
   const sessionValue = createSessionCookieValue({
     email: user.email,
     name: user.name,
     picture: user.picture,
-    accessToken: tokens.access_token,
-    refreshToken: tokens.refresh_token,
   });
 
   const cookieStore = await cookies();

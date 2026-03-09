@@ -3,15 +3,7 @@
 import { useState } from "react";
 import { AppHeader } from "./AppHeader";
 import { Business } from "@/lib/db";
-
-const BUSINESS_TYPES = [
-  { value: "restaurant", label: "Restaurant" },
-  { value: "salon", label: "Salon" },
-  { value: "dentist", label: "Dentist" },
-  { value: "auto_shop", label: "Auto Shop" },
-  { value: "other", label: "Other" },
-];
-const VOICE_TONES = ["professional", "friendly", "casual"] as const;
+import { BUSINESS_TYPES, VOICE_TONES } from "@/lib/constants";
 
 type Props = {
   email: string;
@@ -145,15 +137,15 @@ export function SettingsContent({ email, name, business }: Props) {
                 <div className="flex gap-2 flex-wrap">
                   {VOICE_TONES.map((tone) => (
                     <button
-                      key={tone}
-                      onClick={() => setVoiceTone(tone)}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
-                        voiceTone === tone
+                      key={tone.id}
+                      onClick={() => setVoiceTone(tone.id)}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        voiceTone === tone.id
                           ? "bg-[#1a1a2e] text-white"
                           : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                       }`}
                     >
-                      {tone}
+                      {tone.label}
                     </button>
                   ))}
                 </div>
