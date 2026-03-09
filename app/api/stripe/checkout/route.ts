@@ -78,15 +78,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "NEXT_PUBLIC_APP_URL not configured" }, { status: 503 });
   }
 
-  const checkoutSession = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer_email: session.email,
-    line_items: [{ price: priceId, quantity: 1 }],
-    subscription_data: { trial_period_days: 14 },
-    success_url: `${baseUrl}/dashboard?upgraded=true`,
-    cancel_url: `${baseUrl}/pricing`,
-    metadata: { owner_email: session.email, plan },
-  });
+  let checkoutSession: Stripe.Checkout.Session;
+  try {
+    checkoutSession = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer_email: session.email,
+      line_items: [{ price: priceId, quantity: 1 }],
+      subscription_data: { trial_period_days: 14 },
+      success_url: `${baseUrl}/dashboard?upgraded=true`,
+      cancel_url: `${baseUrl}/pricing`,
+      metadata: { owner_email: session.email, plan },
+    });
+  } catch (err) {
+    console.error("[STRIPE] checkout.sessions.create failed:", err);
+    return NextResponse.json(
+      { error: "Unable to create checkout session. Please try again." },
+      { status: 503 }
+    );
+  }
 
   return NextResponse.redirect(checkoutSession.url!, 303);
 }

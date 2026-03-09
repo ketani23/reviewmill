@@ -7,6 +7,17 @@ import {
 
 export const runtime = "nodejs";
 
+const VALID_PLANS = ["starter", "growth", "scale"] as const;
+type Plan = typeof VALID_PLANS[number];
+
+/** Match a Stripe price ID against configured env vars to derive a plan name. */
+function planFromPriceId(priceId: string): Plan | null {
+  if (priceId && priceId === process.env.STRIPE_STARTER_PRICE_ID) return "starter";
+  if (priceId && priceId === process.env.STRIPE_GROWTH_PRICE_ID) return "growth";
+  if (priceId && priceId === process.env.STRIPE_SCALE_PRICE_ID) return "scale";
+  return null;
+}
+
 export async function POST(req: NextRequest) {
   const secret = process.env.STRIPE_SECRET_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -39,11 +50,6 @@ export async function POST(req: NextRequest) {
           (session.metadata?.owner_email as string | undefined) ??
           session.customer_email ??
           null;
-        const VALID_PLANS = ["starter", "growth", "scale"] as const;
-        const rawPlan = (session.metadata?.plan as string | undefined);
-        const plan = rawPlan && VALID_PLANS.includes(rawPlan as typeof VALID_PLANS[number])
-          ? rawPlan
-          : "starter";
 
         if (!ownerEmail) break;
 
@@ -57,12 +63,37 @@ export async function POST(req: NextRequest) {
             ? session.subscription
             : session.subscription?.id ?? null;
 
-        // Fetch trial end date from the subscription
+        // Determine plan — prefer metadata, fall back to price ID, last resort 'starter'
+        const rawPlanMeta = session.metadata?.plan as string | undefined;
+        let plan: Plan;
         let trialEndsAt: string | null = null;
+
+        if (rawPlanMeta && VALID_PLANS.includes(rawPlanMeta as Plan)) {
+          plan = rawPlanMeta as Plan;
+        } else {
+          plan = "starter"; // will be overridden below if price ID matches
+        }
+
         if (subscriptionId) {
           const sub = await stripe.subscriptions.retrieve(subscriptionId);
           if (sub.trial_end) {
             trialEndsAt = new Date(sub.trial_end * 1000).toISOString();
+          }
+
+          // If plan wasn't determined from metadata, try to derive from price ID
+          if (!rawPlanMeta || !VALID_PLANS.includes(rawPlanMeta as Plan)) {
+            const priceId = sub.items.data[0]?.price?.id ?? "";
+            const derivedPlan = planFromPriceId(priceId);
+            if (derivedPlan) {
+              plan = derivedPlan;
+            } else {
+              console.warn(
+                `[STRIPE] WARN: checkout.session.completed — could not determine plan ` +
+                `from metadata (plan=${rawPlanMeta}) or price ID (${priceId}); ` +
+                `defaulting to 'starter'. Check STRIPE_*_PRICE_ID env vars.`
+              );
+              // plan remains 'starter' from above
+            }
           }
         }
 
@@ -105,15 +136,29 @@ export async function POST(req: NextRequest) {
         const business = await getBusinessByStripeCustomerId(customerId);
         if (!business) break;
 
+        // HIGH: Only grant paid access for genuinely active subscriptions.
+        // past_due / unpaid / incomplete_expired / canceled → downgrade to free.
+        const ACTIVE_STATUSES = ["active", "trialing"] as const;
+        if (!ACTIVE_STATUSES.includes(sub.status as typeof ACTIVE_STATUSES[number])) {
+          console.warn(
+            `[STRIPE] subscription.updated: status=${sub.status} is not active/trialing — downgrading to free`
+          );
+          await updateBusinessStripe(business.owner_email, {
+            plan: "free",
+            stripe_subscription_id: sub.id,
+            trial_ends_at: null,
+          });
+          break;
+        }
+
         const planItem = sub.items.data[0];
-        const VALID_PLANS = ["starter", "growth", "scale"] as const;
         // Try price metadata first (most reliable), then nickname, then fallback
         const rawPlan = (planItem?.price?.metadata?.plan as string | undefined)
           ?? planItem?.price?.nickname?.toLowerCase().trim();
-        const planName = rawPlan && VALID_PLANS.includes(rawPlan as typeof VALID_PLANS[number])
-          ? (rawPlan as typeof VALID_PLANS[number])
+        const planName = rawPlan && VALID_PLANS.includes(rawPlan as Plan)
+          ? (rawPlan as Plan)
           : business.plan;
-        if (!rawPlan || !VALID_PLANS.includes(rawPlan as typeof VALID_PLANS[number])) {
+        if (!rawPlan || !VALID_PLANS.includes(rawPlan as Plan)) {
           console.warn(`[STRIPE] subscription.updated: could not derive plan from price (nickname=${planItem?.price?.nickname}, metadata=${JSON.stringify(planItem?.price?.metadata)}), keeping existing: ${business.plan}`);
         }
 
