@@ -64,6 +64,8 @@ export default async function DashboardPage() {
 
   // Fetch business to get real name and check onboarding status
   let businessName = session.name ?? "Your Business";
+  let hasGoogleConnection = false;
+  let businessId: string | null = null;
   try {
     const business = await getBusinessByEmail(session.email);
     if (!business || !business.business_type) {
@@ -72,6 +74,8 @@ export default async function DashboardPage() {
     if (business?.business_name) {
       businessName = business.business_name;
     }
+    businessId = business?.id ?? null;
+    hasGoogleConnection = !!(business?.google_account_id && business?.google_location_id);
   } catch {
     // DB error — show dashboard with fallback name
   }
@@ -81,6 +85,8 @@ export default async function DashboardPage() {
       email={session.email}
       name={session.name}
       businessName={businessName}
+      hasGoogleConnection={hasGoogleConnection}
+      businessId={businessId}
     />
   );
 }

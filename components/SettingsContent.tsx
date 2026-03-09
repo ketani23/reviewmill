@@ -1,9 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppHeader } from "./AppHeader";
 import { Business } from "@/lib/db";
 import { BUSINESS_TYPES, VOICE_TONES } from "@/lib/constants";
+
+type GoogleLocation = {
+  accountId: string;
+  accountName: string;
+  locationId: string;
+  locationName: string;
+  address: string;
+};
 
 type Props = {
   email: string;
@@ -33,6 +41,56 @@ export function SettingsContent({ email, name, business }: Props) {
     business?.notification_email ?? email
   );
   const [status, setStatus] = useState<SaveStatus>("idle");
+  const [locations, setLocations] = useState<GoogleLocation[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(false);
+  const [locationsError, setLocationsError] = useState<string | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState(
+    business?.google_location_id ?? ""
+  );
+  const [locationSaveStatus, setLocationSaveStatus] = useState<SaveStatus>("idle");
+
+  useEffect(() => {
+    if (business?.google_account_id) {
+      setLocationsLoading(true);
+      fetch("/api/business/locations")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.locations) {
+            setLocations(data.locations);
+            if (data.currentLocationId) {
+              setSelectedLocation(data.currentLocationId);
+            }
+          } else if (data.error) {
+            setLocationsError(data.error);
+          }
+        })
+        .catch(() => setLocationsError("Failed to load locations"))
+        .finally(() => setLocationsLoading(false));
+    }
+  }, [business?.google_account_id]);
+
+  async function handleSaveLocation() {
+    const loc = locations.find((l) => l.locationId === selectedLocation);
+    if (!loc) return;
+    setLocationSaveStatus("saving");
+    try {
+      const res = await fetch("/api/business/locations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accountId: loc.accountId,
+          locationId: loc.locationId,
+          locationName: loc.locationName,
+        }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      setLocationSaveStatus("saved");
+      setTimeout(() => setLocationSaveStatus("idle"), 2500);
+    } catch {
+      setLocationSaveStatus("error");
+      setTimeout(() => setLocationSaveStatus("idle"), 3000);
+    }
+  }
 
   async function handleSave() {
     setStatus("saving");
@@ -218,10 +276,10 @@ export function SettingsContent({ email, name, business }: Props) {
           <section className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100">
               <h2 className="text-base font-semibold text-[#1a1a2e]">
-                Connected Accounts
+                Google Business Profile
               </h2>
             </div>
-            <div className="px-6 py-5">
+            <div className="px-6 py-5 space-y-4">
               <div className="flex items-center gap-3">
                 <svg
                   className="w-8 h-8 flex-shrink-0"
@@ -251,11 +309,81 @@ export function SettingsContent({ email, name, business }: Props) {
                   </p>
                   <p className="text-xs text-gray-500 truncate">{email}</p>
                 </div>
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-green-600 bg-green-50 px-2.5 py-1 rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                  Connected
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-green-600 bg-green-50 px-2.5 py-1 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                    Connected
+                  </span>
+                  <a
+                    href="/api/auth/google"
+                    className="text-xs text-gray-500 hover:text-[#1a1a2e] underline"
+                  >
+                    Reconnect
+                  </a>
+                </div>
               </div>
+
+              {/* Location selection */}
+              {business?.google_account_id && (
+                <div className="border-t border-gray-100 pt-4">
+                  <label className="block text-sm font-medium text-[#1a1a2e] mb-1.5">
+                    Business Location
+                  </label>
+                  {locationsLoading ? (
+                    <p className="text-sm text-gray-400">Loading locations...</p>
+                  ) : locationsError ? (
+                    <p className="text-sm text-red-500">{locationsError}</p>
+                  ) : locations.length === 0 ? (
+                    <p className="text-sm text-gray-400">
+                      No locations found. Make sure your Google Business Profile has at
+                      least one location.
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      <select
+                        value={selectedLocation}
+                        onChange={(e) => setSelectedLocation(e.target.value)}
+                        className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#e8a838]/50 focus:border-[#e8a838] bg-white"
+                      >
+                        <option value="">Select a location...</option>
+                        {locations.map((loc) => (
+                          <option key={loc.locationId} value={loc.locationId}>
+                            {loc.locationName} — {loc.address}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={handleSaveLocation}
+                          disabled={
+                            !selectedLocation || locationSaveStatus === "saving"
+                          }
+                          className="py-2 px-4 bg-[#1a1a2e] hover:bg-[#252545] text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-60"
+                        >
+                          {locationSaveStatus === "saving"
+                            ? "Saving..."
+                            : "Save Location"}
+                        </button>
+                        {locationSaveStatus === "saved" && (
+                          <span className="text-sm text-green-600 font-medium">
+                            Location saved!
+                          </span>
+                        )}
+                        {locationSaveStatus === "error" && (
+                          <span className="text-sm text-red-500 font-medium">
+                            Failed to save.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {business.google_location_name && (
+                    <p className="text-xs text-gray-400 mt-2">
+                      Currently connected: {business.google_location_name}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </section>
 
