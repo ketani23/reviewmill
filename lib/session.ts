@@ -10,10 +10,9 @@ export interface RGSession {
 function getSecret(): string {
   const secret = process.env.SESSION_SECRET;
   if (!secret) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("SESSION_SECRET environment variable is required in production");
-    }
-    return "dev-insecure-fallback-replace-in-production";
+    throw new Error(
+      "SESSION_SECRET is required. Generate one with: openssl rand -hex 32"
+    );
   }
   return secret;
 }

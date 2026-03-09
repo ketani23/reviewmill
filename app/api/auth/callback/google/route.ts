@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
   const user = await userRes.json();
 
   if (!user.email || typeof user.email !== "string") {
-    console.error("[AUTH] Google userinfo returned no email:", user);
+    console.error("[AUTH] Google userinfo returned no email (status:", userRes.status, ")");
     return NextResponse.redirect(
       new URL("/dashboard?error=missing_email", req.url)
     );
@@ -78,15 +78,11 @@ export async function GET(req: NextRequest) {
       });
     }
   } catch (err) {
-    console.error("[AUTH] upsertBusiness failed — user authenticated but DB record may be missing:", err);
-    // For new users, a missing DB record means nothing works — redirect to error
-    // For existing users (token refresh failed), we can still proceed
-    const existingCheck = await getBusinessByEmail(user.email).catch(() => null);
-    if (!existingCheck) {
-      return NextResponse.redirect(
-        new URL("/dashboard?error=db_setup_failed", req.url)
-      );
-    }
+    console.error("[AUTH] upsertBusiness failed:", err);
+    // Fail auth for both new and existing users — stale tokens will break features
+    return NextResponse.redirect(
+      new URL("/dashboard?error=db_setup_failed", req.url)
+    );
   }
 
   // Store signed session in cookie — tokens are NOT included here;
