@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
     locationName?: string;
   };
 
-  if (!accountId || !locationId) {
+  if (typeof accountId !== "string" || !accountId.trim() || typeof locationId !== "string" || !locationId.trim()) {
     return NextResponse.json(
       { error: "accountId and locationId are required" },
       { status: 400 }

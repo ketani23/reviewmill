@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     response_text?: string;
   };
 
-  if (!reviewId || !response_text) {
+  if (typeof reviewId !== "string" || !reviewId.trim() || typeof response_text !== "string" || !response_text.trim()) {
     return NextResponse.json(
       { error: "reviewId and response_text are required" },
       { status: 400 }

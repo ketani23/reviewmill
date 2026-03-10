@@ -8,6 +8,13 @@ import {
 } from "@/lib/google";
 import { checkOrigin } from "@/lib/csrf";
 
+function getBaseUrl(): string {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (appUrl) return appUrl.replace(/\/$/, "");
+  // Fallback for local dev only
+  return "http://localhost:3000";
+}
+
 export async function POST(req: NextRequest) {
   const originError = checkOrigin(req);
   if (originError) return originError;
@@ -61,7 +68,7 @@ export async function POST(req: NextRequest) {
         // Auto-generate AI draft for new reviews
         try {
           const draftRes = await fetch(
-            new URL("/api/draft-response", req.url).toString(),
+            `${getBaseUrl()}/api/draft-response`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -93,7 +100,7 @@ export async function POST(req: NextRequest) {
 
         // Send email notification for new reviews
         try {
-          await fetch(new URL("/api/send-notification", req.url).toString(), {
+          await fetch(`${getBaseUrl()}/api/send-notification`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

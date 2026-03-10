@@ -189,7 +189,7 @@ export async function upsertReview(review: {
 
   if (existing) {
     // Update existing review (text/rating may change)
-    await supabase
+    const { error: updateError } = await supabase
       .from("reviews")
       .update({
         reviewer_name: review.reviewer_name,
@@ -198,6 +198,10 @@ export async function upsertReview(review: {
       })
       .eq("id", existing.id)
       .eq("business_id", review.business_id);
+    if (updateError) {
+      console.error("[DB] Failed to update review:", updateError);
+      throw updateError;
+    }
     return { isNew: false, id: existing.id };
   }
 

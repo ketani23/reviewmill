@@ -134,7 +134,7 @@ export async function listAccounts(
   businessId: string
 ): Promise<GoogleAccount[]> {
   const res = await googleFetch(
-    "https://mybusinessbusinessinformation.googleapis.com/v1/accounts",
+    "https://mybusinessaccountmanagement.googleapis.com/v1/accounts",
     accessToken,
     businessId
   );
