@@ -123,7 +123,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("[SYNC] Error:", err);
-    const message = err instanceof Error ? err.message : "Sync failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to sync reviews" }, { status: 500 });
   }
 }

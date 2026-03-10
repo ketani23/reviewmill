@@ -7,7 +7,7 @@ ALTER TABLE businesses
 CREATE TABLE IF NOT EXISTS reviews (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   business_id uuid NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
-  google_review_id text UNIQUE,
+  google_review_id text,
   google_account_id text,
   google_location_id text,
   reviewer_name text NOT NULL,
@@ -22,10 +22,12 @@ CREATE TABLE IF NOT EXISTS reviews (
 -- Index for fast lookups by business
 CREATE INDEX IF NOT EXISTS idx_reviews_business_id ON reviews(business_id);
 
--- Index for deduplication by google_review_id
-CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_google_review_id ON reviews(google_review_id)
+-- Unique index scoped by business for deduplication
+CREATE UNIQUE INDEX IF NOT EXISTS idx_reviews_biz_google_review_id
+  ON reviews(business_id, google_review_id)
   WHERE google_review_id IS NOT NULL;
 
--- No RLS on reviews table: all access goes through authenticated server-side
--- API routes that enforce ownership checks (e.g. reviews/list, reviews/reply).
--- The app uses the anon key from server-side only, never from the browser.
+-- Enable RLS: only service_role can access reviews (server-side only)
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
+CREATE POLICY reviews_service_role_only ON reviews
+  FOR ALL TO service_role USING (true) WITH CHECK (true);

@@ -41,6 +41,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Review not found" }, { status: 404 });
   }
 
+  if (review.response_status !== "approved") {
+    return NextResponse.json(
+      { error: "Review must be approved before posting a reply" },
+      { status: 400 }
+    );
+  }
+
   if (!review.google_review_id || !review.google_account_id || !review.google_location_id) {
     // No Google IDs — just mark as responded locally
     await updateReviewStatus(reviewId, "responded", response_text);
@@ -64,7 +71,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, posted: true });
   } catch (err) {
     console.error("[REPLY] Error:", err);
-    const message = err instanceof Error ? err.message : "Reply failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to post reply" }, { status: 500 });
   }
 }

@@ -55,8 +55,7 @@ export async function GET() {
     });
   } catch (err) {
     console.error("[LOCATIONS] Error:", err);
-    const message = err instanceof Error ? err.message : "Failed to fetch locations";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Failed to list locations" }, { status: 500 });
   }
 }
 
@@ -90,6 +89,42 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { error: "accountId and locationId are required" },
       { status: 400 }
+    );
+  }
+
+  // Verify the account and location exist and belong to this user
+  try {
+    const accessToken = await getValidAccessToken(business.id);
+    const accounts = await listAccounts(accessToken, business.id);
+    const matchedAccount = accounts.find(
+      (a) => a.name === `accounts/${accountId}`
+    );
+    if (!matchedAccount) {
+      return NextResponse.json(
+        { error: "Account not found or not accessible" },
+        { status: 403 }
+      );
+    }
+
+    const locations = await listLocations(
+      accessToken,
+      matchedAccount.name,
+      business.id
+    );
+    const matchedLocation = locations.find(
+      (l) => l.name === `locations/${locationId}`
+    );
+    if (!matchedLocation) {
+      return NextResponse.json(
+        { error: "Location not found or not accessible" },
+        { status: 403 }
+      );
+    }
+  } catch (err) {
+    console.error("[LOCATIONS] Verification error:", err);
+    return NextResponse.json(
+      { error: "Failed to verify location ownership" },
+      { status: 500 }
     );
   }
 

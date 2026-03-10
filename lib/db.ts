@@ -179,10 +179,11 @@ export async function upsertReview(review: {
 }): Promise<{ isNew: boolean; id: string }> {
   const supabase = createSupabaseClient();
 
-  // Check if already exists
+  // Check if already exists (scoped by business)
   const { data: existing } = await supabase
     .from("reviews")
     .select("id")
+    .eq("business_id", review.business_id)
     .eq("google_review_id", review.google_review_id)
     .single();
 
@@ -195,7 +196,8 @@ export async function upsertReview(review: {
         rating: review.rating,
         review_text: review.review_text,
       })
-      .eq("id", existing.id);
+      .eq("id", existing.id)
+      .eq("business_id", review.business_id);
     return { isNew: false, id: existing.id };
   }
 
