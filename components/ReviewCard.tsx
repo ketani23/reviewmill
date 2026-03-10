@@ -3,9 +3,13 @@
 import { useState } from "react";
 import { Review } from "@/lib/mockData";
 
+type ExtendedStatus = Review["response_status"] | "responded";
+
 type ReviewCardProps = {
-  review: Review;
+  review: Review & { google_review_id?: string | null };
   onToast?: (message: string, type?: "success" | "info" | "error") => void;
+  hasGoogleConnection?: boolean;
+  onPostToGoogle?: (reviewId: string, responseText: string) => Promise<boolean>;
 };
 
 function StarRating({ rating }: { rating: number }) {
@@ -33,12 +37,13 @@ function ratingMeta(rating: number): { label: string; color: string } {
   return { label: "Critical", color: "text-red-600" };
 }
 
-function StatusBadge({ status }: { status: Review["response_status"] }) {
+function StatusBadge({ status }: { status: ExtendedStatus }) {
   const config = {
     pending: { label: "Pending", className: "bg-amber-100 text-amber-700" },
     drafted: { label: "Drafted", className: "bg-blue-100 text-blue-700" },
     approved: { label: "Approved", className: "bg-green-100 text-green-700" },
-    sent: { label: "Sent ✓", className: "bg-green-100 text-green-700" },
+    sent: { label: "Sent", className: "bg-green-100 text-green-700" },
+    responded: { label: "Posted", className: "bg-emerald-100 text-emerald-700" },
   }[status];
 
   return (
@@ -74,14 +79,15 @@ function Spinner() {
   );
 }
 
-export function ReviewCard({ review, onToast }: ReviewCardProps) {
-  const [status, setStatus] = useState<Review["response_status"]>(
+export function ReviewCard({ review, onToast, hasGoogleConnection, onPostToGoogle }: ReviewCardProps) {
+  const [status, setStatus] = useState<ExtendedStatus>(
     review.response_status
   );
   const [draft, setDraft] = useState(review.drafted_response);
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(review.drafted_response);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
 
   const { label, color } = ratingMeta(review.rating);
 
@@ -129,7 +135,20 @@ export function ReviewCard({ review, onToast }: ReviewCardProps) {
     onToast?.("Response approved!");
   };
 
-  const hasDraft = status === "drafted" || status === "approved" || status === "sent";
+  const postToGoogle = async () => {
+    if (!onPostToGoogle) return;
+    setIsPosting(true);
+    try {
+      const success = await onPostToGoogle(review.id, draft);
+      if (success) {
+        setStatus("responded");
+      }
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
+  const hasDraft = status === "drafted" || status === "approved" || status === "sent" || status === "responded";
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
@@ -157,7 +176,7 @@ export function ReviewCard({ review, onToast }: ReviewCardProps) {
         <p className="text-sm text-gray-700 leading-relaxed">{review.review_text}</p>
       </div>
 
-      {/* AI draft response — shown after draft is generated */}
+      {/* AI draft response */}
       {hasDraft && (
         <div className="border border-[#e8a838]/40 rounded-lg p-3 mb-4 bg-amber-50/40">
           <p className="text-xs font-semibold text-[#d4922a] mb-1.5 uppercase tracking-wide">
@@ -186,7 +205,7 @@ export function ReviewCard({ review, onToast }: ReviewCardProps) {
           {isGenerating ? (
             <>
               <Spinner />
-              Generating with Claude…
+              Generating with Claude...
             </>
           ) : (
             <>
@@ -243,7 +262,38 @@ export function ReviewCard({ review, onToast }: ReviewCardProps) {
         </div>
       )}
 
-      {(status === "approved" || status === "sent") && (
+      {status === "approved" && hasGoogleConnection && review.google_review_id && (
+        <button
+          onClick={postToGoogle}
+          disabled={isPosting}
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60"
+        >
+          {isPosting ? (
+            <>
+              <Spinner />
+              Posting to Google...
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+              </svg>
+              Post to Google
+            </>
+          )}
+        </button>
+      )}
+
+      {status === "approved" && (!hasGoogleConnection || !review.google_review_id) && (
+        <div className="flex items-center gap-2 text-green-600">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          <span className="text-sm font-medium">Response approved</span>
+        </div>
+      )}
+
+      {(status === "sent" || status === "responded") && (
         <div className="flex items-center gap-2 text-green-600">
           <svg
             className="w-4 h-4"
@@ -258,7 +308,9 @@ export function ReviewCard({ review, onToast }: ReviewCardProps) {
               d="M5 13l4 4L19 7"
             />
           </svg>
-          <span className="text-sm font-medium">Response approved</span>
+          <span className="text-sm font-medium">
+            {status === "responded" ? "Response posted to Google" : "Response approved"}
+          </span>
         </div>
       )}
     </div>

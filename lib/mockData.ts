@@ -5,7 +5,7 @@ export type Review = {
   review_text: string;
   review_date: string;
   drafted_response: string;
-  response_status: "pending" | "drafted" | "approved" | "sent";
+  response_status: "pending" | "drafted" | "approved" | "sent" | "responded";
 };
 
 export const mockReviews: Review[] = [
