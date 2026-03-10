@@ -101,8 +101,10 @@ export async function POST(req: NextRequest) {
           console.warn("[SYNC] Draft generation failed for review:", result.id, e);
         }
 
-        // Send email notification for new reviews
-        try {
+        // Send email notification for new reviews (respect opt-out)
+        if (business.notifications_enabled === false) {
+          console.log("[SYNC] Notifications disabled for business, skipping email");
+        } else try {
           await fetch(`${getBaseUrl()}/api/send-notification`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
