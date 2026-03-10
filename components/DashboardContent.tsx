@@ -53,8 +53,8 @@ function DashboardInner({ email, businessName, hasGoogleConnection, businessId }
       const res = await fetch(`/api/reviews/list?businessId=${businessId}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.reviews && data.reviews.length > 0) {
-          setReviews(data.reviews);
+        if (data.reviews) {
+          setReviews(data.reviews.length > 0 ? data.reviews : []);
           setIsLiveMode(true);
           return;
         }

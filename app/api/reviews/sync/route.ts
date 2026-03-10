@@ -88,10 +88,13 @@ export async function POST(req: NextRequest) {
                 "@/lib/supabase-server"
               );
               const supabase = createSupabaseClient();
-              await supabase
+              const { error: draftUpdateErr } = await supabase
                 .from("reviews")
                 .update({ drafted_response: draft, response_status: "drafted" })
                 .eq("id", result.id);
+              if (draftUpdateErr) {
+                console.error("[SYNC] Failed to save draft for review:", result.id, draftUpdateErr);
+              }
             }
           }
         } catch (e) {
